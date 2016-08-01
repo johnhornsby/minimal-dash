@@ -2,6 +2,7 @@ import co from 'co';
 
 import StreamsManager from './streams-manager';
 
+const BUFFER_MIN_LENGTH = 2;
 
 export default class Player {
 
@@ -82,10 +83,9 @@ export default class Player {
 		this._onError = ::this._onError;
 		this._endStream = ::this._endStream;
 		this._getInitData = ::this._getInitData;
-		this._onReceiveVideoData = ::this._onReceiveVideoData;
+		this._onReceiveFragment = ::this._onReceiveFragment;
 		this._onVideoEvent = ::this._onVideoEvent;
-
-
+		this._onUpdateEnd = ::this._onUpdateEnd;
 	}
 
 	_onVideoEvent(event) {
@@ -117,7 +117,9 @@ export default class Player {
 
 				const bufferType = `${manifestData.mimeType}; codecs="${manifestData.streams[0].codecs}"`;
 
-				this._initMediaSource(bufferType, this._videoElement)
+				this._mediaSource = new MediaSource();
+
+				this._initialiseMediaSource(bufferType, this._videoElement, this._mediaSource)
 					.then( ({mediaSource, sourceBuffer}) => {
 
 						console.log('mediaSource readyState: ' + mediaSource.readyState);
@@ -129,7 +131,6 @@ export default class Player {
 						sourceBuffer.addEventListener('error', this._onError);
 						sourceBuffer.addEventListener('updateend', this._onUpdateEnd);
 
-						this._mediaSource = mediaSource;
 						this._sourceBuffer = sourceBuffer;
 
 						this._getInitData();
@@ -142,38 +143,44 @@ export default class Player {
 
 	_getInitData() {
 		StreamsManager.getInitData(this._manifestURL).then((arrayBuffer) => {
-			this._onReceiveVideoData(arrayBuffer);
+			this._onReceiveFragment(arrayBuffer);
 
 			// @TEMP
-			StreamsManager._getMediaData(this._manifestURL).then(this._onReceiveVideoData);
+			StreamsManager._getMediaData(this._manifestURL).then(this._onReceiveFragment);
 		});
 		
 	}
 
 
-	_initMediaSource(bufferType, videoElement) {
+	_initialiseMediaSource(bufferType, videoElement, mediaSource) {
 		return new Promise((resolve, reject) => {
-			
+
 			if (MediaSource.isTypeSupported(bufferType) === false) {
 				reject(new Error('Media type is not supported:', bufferType));
 			}
 
-			const mediaSource = new MediaSource();
+			videoElement.src = null;
 
-			mediaSource.addEventListener('sourceopen', () => {
-				
+			mediaSource.addEventListener('sourceopen', onSourceOpen);
+
+			let sourceURL = window.URL.createObjectURL(mediaSource);
+			videoElement.src = sourceURL;
+
+			function onSourceOpen() {
+				window.URL.revokeObjectURL(sourceURL);
+
+				mediaSource.removeEventListener('sourceopen', onSourceOpen);
+
 				const sourceBuffer = mediaSource.addSourceBuffer(bufferType);
 
 				resolve({mediaSource, sourceBuffer});
-			});
-
-			videoElement.src = window.URL.createObjectURL(mediaSource);
+			}
 		});
 	}
 
 
-	_onReceiveVideoData(arrayBuffer, isFinalFragment = false) {
-		console.log('_onReceiveVideoData arrayBuffer length: ' + arrayBuffer.length);
+	_onReceiveFragment(arrayBuffer, isFinalFragment = false) {
+		console.log('_onReceiveFragment arrayBuffer length: ' + arrayBuffer.length);
 		this._sourceBuffer.appendBuffer(arrayBuffer);
 
 		// if (this._videoElement.paused) {
@@ -182,12 +189,39 @@ export default class Player {
 
 		if (isFinalFragment) {
 			this._sourceBuffer.addEventListener('updateend', this._endStream);
+		}		
+	}
+
+
+	_checkBuffer(videoElement) {
+		const currentTime = videoElement.currentTime;
+
+		let index = videoElement.buffered.length;
+		const ranges = [];
+
+		if (index === 0) return false;
+
+		while(index--) {
+			ranges.push({
+				start: videoElement.buffered.start(index),
+				end: videoElement.buffered.end(index),
+				index: index
+			});
 		}
+
+		ranges.every( range => {
+			if (currentTime >= range.start && currentTime <= range.end - BUFFER_MIN_LENGTH) {
+				return true;
+			}
+		});
+
+		return false;
 	}
 
 
 	_onUpdateEnd() {
 		console.log('_onUpdateEnd');
+		this._checkBuffer(this._videoElement);
 	}
 
 
