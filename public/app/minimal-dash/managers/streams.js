@@ -1,6 +1,7 @@
 import EventEmitter from 'wolfy87-eventemitter';
-import FetchXHR2 from '../util/fetch-xhr2';
-import Manifest from './models/manifest';
+import FetchXHR2 from '../../util/fetch-xhr2';
+import Manifest from '../models/manifest';
+import BandwidthManager from './bandwidth';
 
 let singleton = Symbol();
 let singletonEnforcer = Symbol();
@@ -71,8 +72,6 @@ class StreamsManager extends EventEmitter {
 						this._manifests.set(manifestURL, manifestData);
 
 						resolve(manifestData);
-						// 
-						// this._getVideoInitData(initURL);
 					})
 					.catch(this._onError);
 
@@ -108,9 +107,14 @@ class StreamsManager extends EventEmitter {
 			const manifestData = this._manifests.get(manifestURL);
 			
 			let url = 'streams/' + manifestData.getFragment(0, 0).url;
+
+			BandwidthManager.start(url);
 			
 			FetchXHR2.fetch(url, 'arraybuffer')
-				.then(resolve)
+				.then(function(data) {
+					BandwidthManager.stop(url, data.length);
+					resolve(data);
+				})
 				.catch(this._onError);
 
 		});

@@ -1,11 +1,11 @@
 import co from 'co';
 
-import StreamsManager from './streams-manager';
+import StreamsManager from './managers/streams';
 import VideoController from './controllers/video-element';
 import SourceController from './controllers/source';
 
 
-const BUFFER_MIN_LENGTH = 2;
+
 
 export default class Player {
 
@@ -158,35 +158,10 @@ export default class Player {
 	}
 
 
-	_checkBuffer(videoElement) {
-		const currentTime = videoElement.currentTime;
-
-		let index = videoElement.buffered.length;
-		const ranges = [];
-
-		if (index === 0) return false;
-
-		while(index--) {
-			ranges.push({
-				start: videoElement.buffered.start(index),
-				end: videoElement.buffered.end(index),
-				index: index
-			});
-		}
-
-		ranges.every( range => {
-			if (currentTime >= range.start && currentTime <= range.end - BUFFER_MIN_LENGTH) {
-				return true;
-			}
-		});
-
-		return false;
-	}
-
-
 	_onUpdateEnd() {
 		console.log('_onUpdateEnd');
-		this._checkBuffer(this._videoElement);
+		
+		this._videoController.checkBuffer();
 	}
 
 
