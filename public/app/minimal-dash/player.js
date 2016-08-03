@@ -1,6 +1,9 @@
 import co from 'co';
 
 import StreamsManager from './streams-manager';
+import VideoController from './controllers/video-element';
+import SourceController from './controllers/source';
+
 
 const BUFFER_MIN_LENGTH = 2;
 
@@ -14,6 +17,12 @@ export default class Player {
 	_mediaSource = null;
 
 	_sourceBuffer = null;
+
+	_videoController = null;
+
+	_sourceController = null;
+
+	_manifest = null;
 
 
 	constructor(videoElement, manifestURL) {
@@ -50,30 +59,8 @@ export default class Player {
 	_init() {
 		this._bind();
 
-		this._videoElement.preload = false;
-
-		this._videoElement.addEventListener("loadstart", this._onVideoEvent);
-        this._videoElement.addEventListener("emptied", this._onVideoEvent);
-        this._videoElement.addEventListener("canplaythrough", this._onVideoEvent);
-        this._videoElement.addEventListener("ended", this._onVideoEvent);
-        this._videoElement.addEventListener("ratechange", this._onVideoEvent);
-        this._videoElement.addEventListener("progress", this._onVideoEvent);
-        this._videoElement.addEventListener("stalled", this._onVideoEvent);
-        this._videoElement.addEventListener("playing", this._onVideoEvent);
-        this._videoElement.addEventListener("durationchange", this._onVideoEvent);
-        this._videoElement.addEventListener("resize", this._onVideoEvent);
-        this._videoElement.addEventListener("suspend", this._onVideoEvent);
-        this._videoElement.addEventListener("loadedmetadata", this._onVideoEvent);
-        this._videoElement.addEventListener("waiting", this._onVideoEvent);
-        this._videoElement.addEventListener("timeupdate", this._onVideoEvent);
-        this._videoElement.addEventListener("abort", this._onVideoEvent);
-        this._videoElement.addEventListener("loadeddata", this._onVideoEvent);
-        this._videoElement.addEventListener("seeking", this._onVideoEvent);
-        this._videoElement.addEventListener("play", this._onVideoEvent);
-        this._videoElement.addEventListener("error", this._onVideoEvent);
-        this._videoElement.addEventListener("canplay", this._onVideoEvent);
-        this._videoElement.addEventListener("seeked", this._onVideoEvent);
-        this._videoElement.addEventListener("pause", this._onVideoEvent);
+		this._videoController = new VideoController(this._videoElement);
+		this._sourceController = new SourceController();
 
 		this._getManifest();
 	}
@@ -84,29 +71,7 @@ export default class Player {
 		this._endStream = ::this._endStream;
 		this._getInitData = ::this._getInitData;
 		this._onReceiveFragment = ::this._onReceiveFragment;
-		this._onVideoEvent = ::this._onVideoEvent;
 		this._onUpdateEnd = ::this._onUpdateEnd;
-	}
-
-	_onVideoEvent(event) {
-		console.log(event.type);
-
-		switch(event.type) {
-		case 'durationchange':
-			break;
-		case 'loadedmetadata':
-
-			break;
-		case 'progress':
-			console.log('readyState:' + this._videoElement.readyState);
-			break;
-		case 'loadeddata':
-
-
-			this._videoElement.buffered.start(0)
-			this._videoElement.buffered.end(0)
-			break;
-		}
 	}
 
 
@@ -115,7 +80,7 @@ export default class Player {
 		StreamsManager.getManifest(this._manifestURL)
 			.then( manifestData => {
 
-				const bufferType = `${manifestData.mimeType}; codecs="${manifestData.streams[0].codecs}"`;
+				const bufferType = manifestData.getStream(0).bufferType;
 
 				this._mediaSource = new MediaSource();
 

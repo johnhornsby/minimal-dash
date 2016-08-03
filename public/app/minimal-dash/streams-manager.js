@@ -1,6 +1,6 @@
 import EventEmitter from 'wolfy87-eventemitter';
 import FetchXHR2 from '../util/fetch-xhr2';
-
+import Manifest from './models/manifest';
 
 let singleton = Symbol();
 let singletonEnforcer = Symbol();
@@ -19,7 +19,7 @@ class StreamsManager extends EventEmitter {
 	}
 
 
-	_streams = null;
+	_manifests = null;
 
 
 
@@ -44,13 +44,17 @@ class StreamsManager extends EventEmitter {
 	getInitData(manifestURL) { return this._getInitData(manifestURL) }
 
 
+
+
+
+
 	/*____________________________________________
 
 	Private
 	_____________________________________________*/
 
 	_init() {
-	 	this._streams = new Map();
+	 	this._manifests = new Map();
 	}
 
 
@@ -59,12 +63,12 @@ class StreamsManager extends EventEmitter {
 
 	_getManifest(manifestURL) {
 		return new Promise( (resolve, reject) => {
-			if (this._streams.has(manifestURL) === false) {
+			if (this._manifests.has(manifestURL) === false) {
 				
 				FetchXHR2.fetch(manifestURL, 'text')
 					.then( data => {
-						const manifestData = this._parseStreamMPDData(data);
-						this._streams.set(manifestURL, manifestData);
+						const manifestData = new Manifest(manifestURL, data);
+						this._manifests.set(manifestURL, manifestData);
 
 						resolve(manifestData);
 						// 
@@ -73,63 +77,19 @@ class StreamsManager extends EventEmitter {
 					.catch(this._onError);
 
 			} else {
-				resolve(this._streams.get(manifestURL));
+				resolve(this._manifests.get(manifestURL));
 			}
 		});
-	}
-
-
-	_parseStreamMPDData(string) {
-		
-		const parser = new DOMParser();
-		const xml = parser.parseFromString(string, 'text/xml').documentElement;
-		const manifestData = {};
-
-		manifestData.streams = Array.from(xml.querySelectorAll('Representation')).map((node) => {
-			return {
-				bandwidth: node.getAttribute('bandwidth'),
-				codecs: node.getAttribute('codecs'),
-				frameRate: node.getAttribute('frameRate'),
-				height: node.getAttribute('height'),
-				id: node.getAttribute('id'),
-				scanType: node.getAttribute('scanType'),
-				width: node.getAttribute('width')
-			}
-		});
-
-		let node = xml.querySelector('SegmentTemplate');
-
-		manifestData.fragmentDuration = node.getAttribute('duration');
-		manifestData.initialization = node.getAttribute('initialization');
-		manifestData.media = node.getAttribute('media');
-		manifestData.startNumber = node.getAttribute('startNumber');
-		manifestData.timescale = node.getAttribute('timescale');
-
-		node = xml.querySelector('AdaptationSet');
-
-		manifestData.mimeType = node.getAttribute('mimeType');
-		manifestData.segmentAlignment = node.getAttribute('segmentAlignment');
-		manifestData.startWithSAP = node.getAttribute('startWithSAP');
-
-		const durationString = xml.getAttribute('mediaPresentationDuration');
-		const seconds = durationString.match(/\d*(?=S)/);
-		const minutes = durationString.match(/\d*(?=M)/) || [0];
-		const hours = durationString.match(/\d*(?=H)/) || [0];
-
-		manifestData.duration = (parseInt(hours[0]) * 60 * 60) + (parseInt(minutes[0]) * 60) + parseInt(seconds[0]);
-		manifestData.numberOfFragments = Math.ceil(manifestData.duration / (manifestData.fragmentDuration / 1000));
-
-		return manifestData;
 	}
 
 
 	_getInitData(manifestURL) {
 		return new Promise( (resolve, reject) => {
-			if (this._streams.has(manifestURL)) {
+			if (this._manifests.has(manifestURL)) {
 
-				const manifestData = this._streams.get(manifestURL);
+				const manifestData = this._manifests.get(manifestURL);
 				
-				const url = 'streams/' + manifestData.initialization.replace("$RepresentationID$", manifestData.streams[0].id);
+				const url = 'streams/' + manifestData.getStream(0).initialization;
 
 				FetchXHR2.fetch(url, 'arraybuffer')
 					.then(resolve)
@@ -145,13 +105,10 @@ class StreamsManager extends EventEmitter {
 	_getMediaData(manifestURL) {
 		return new Promise( (resolve, reject) => {
 
-
-			const manifestData = this._streams.get(manifestURL);
+			const manifestData = this._manifests.get(manifestURL);
 			
-			let url = 'streams/' + manifestData.media.replace("$RepresentationID$", manifestData.streams[0].id);
-			url = url.replace("$Number$", "1");
+			let url = 'streams/' + manifestData.getFragment(0, 0).url;
 			
-
 			FetchXHR2.fetch(url, 'arraybuffer')
 				.then(resolve)
 				.catch(this._onError);
