@@ -1,31 +1,36 @@
-import co from 'co';
-
-import StreamsManager from './managers/streams';
+import LoadManager from './managers/load';
 import VideoController from './controllers/video-element';
 import SourceController from './controllers/source';
+import BandwidthManager from './managers/bandwidth';
+import EventEmitter from '../util/event-emitter';
 
 
+export default class Player extends EventEmitter {
 
 
-export default class Player {
+	static EVENT_TIME_UPDATE = 'eventTimeUpdate';
 
 
-	_streamModel = null;
-
-	_videoElement = null;
-
-	_mediaSource = null;
-
-	_sourceBuffer = null;
-
+	// controller of the video element
 	_videoController = null;
 
+	// controllor the video's related MediaSource and SourceBuffer
 	_sourceController = null;
 
+	// url of manifest file
+	_manifestURL = null;
+
+	// mainifest data object
 	_manifest = null;
+
+	// current stream index
+	_streamIndex = null;
+
+	_isUpdating = false;
 
 
 	constructor(videoElement, manifestURL) {
+		super();
 
 		this._videoElement = videoElement;
 
@@ -60,121 +65,210 @@ export default class Player {
 		this._bind();
 
 		this._videoController = new VideoController(this._videoElement);
-		this._sourceController = new SourceController();
+		this._videoController.on(VideoController.EVENT_TIME_UPDATE, this._onTimeUpdate);
+		this._sourceController = new SourceController(this._videoController);
 
-		this._getManifest();
-	}
+		// Get manifest and kickstart checking cached data
+		this._getManifest()
+			.then( manifest => {
+				this._manifest = manifest;
 
+				this._checkVideoBuffer();
 
-	_bind() {
-		this._onError = ::this._onError;
-		this._endStream = ::this._endStream;
-		this._getInitData = ::this._getInitData;
-		this._onReceiveFragment = ::this._onReceiveFragment;
-		this._onUpdateEnd = ::this._onUpdateEnd;
-	}
-
-
-	_getManifest() {
-		// init stream model with manifest
-		StreamsManager.getManifest(this._manifestURL)
-			.then( manifestData => {
-
-				const bufferType = manifestData.getStream(0).bufferType;
-
-				this._mediaSource = new MediaSource();
-
-				this._initialiseMediaSource(bufferType, this._videoElement, this._mediaSource)
-					.then( ({mediaSource, sourceBuffer}) => {
-
-						console.log('mediaSource readyState: ' + mediaSource.readyState);
+				// this._sourceController.initialise(manifest.getStream(5))
+				// 		.then(() => {
+				// 			this._createSelects(manifest);
+				// 		})
+				// 		.catch(this._onError);
 
 
-						mediaSource.duration = manifestData.duration;
-
-						mediaSource.addEventListener('error', this._onError);
-						sourceBuffer.addEventListener('error', this._onError);
-						sourceBuffer.addEventListener('updateend', this._onUpdateEnd);
-
-						this._sourceBuffer = sourceBuffer;
-
-						this._getInitData();
-					})
-					.catch(this._onError);
 			})
 			.catch(this._onError);
 	}
 
 
-	_getInitData() {
-		StreamsManager.getInitData(this._manifestURL).then((arrayBuffer) => {
-			this._onReceiveFragment(arrayBuffer);
+	// _createSelects(manifest) {
+	// 	for (let stream of manifest) {
+	// 		const select = document.createElement('select');
+	// 		select.id = 'stream-' + stream.index;
+	// 		document.body.appendChild(select);
 
-			// @TEMP
-			StreamsManager._getMediaData(this._manifestURL).then(this._onReceiveFragment);
-		});
+	// 		const option = document.createElement('option');
+	// 		option.value = '';
+	// 		option.innerHTML = 'Select Fragment';
+	// 		select.appendChild(option);
+
+	// 		select.addEventListener('change', (event) => {
+	// 			const index = parseInt(select.value);
+
+	// 			let fragment;
+	// 			if (index === -1) {
+	// 				fragment = stream.getFragmentInit();
+	// 			} else {
+	// 				fragment = stream.getFragment(index);
+	// 			}
+
+	// 			this._sourceController.appendToBuffer(fragment);
+	// 		});
+
+	// 		LoadManager.getData(stream.getFragmentInit())
+	// 				.then( fragment => {
+	// 					this._createOption(select, fragment, stream);
+	// 				}) // now data has loaded re check cached data 
+	// 				.catch(this._onError);
+	// 	}
+	// }
+
+
+	// _createOption(select, fragment, stream) {
+	// 	const option = document.createElement('option');
+	// 	option.value = fragment.index;
+	// 	option.innerHTML = fragment.url;
+	// 	select.appendChild(option);
+
+	// 	this._loadNext(select, fragment.index + 1, stream);
+	// }
+
+	// _loadNext(select, index, stream) {
+	// 	const fragment = stream.getFragment(index);
+	// 	if (fragment) {
+	// 		LoadManager.getData(fragment)
+	// 				.then( fragment => {
+	// 					this._createOption(select, fragment, stream);
+	// 				}) // now data has loaded re check cached data 
+	// 				.catch(this._onError);
+	// 	}
 		
+	// }
+
+
+
+	_bind() {
+		this._onTimeUpdate = ::this._onTimeUpdate;
 	}
 
 
-	_initialiseMediaSource(bufferType, videoElement, mediaSource) {
-		return new Promise((resolve, reject) => {
+	_getManifest() {
+		// init stream model with manifest
+		return LoadManager.getManifest(this._manifestURL);
+	}
 
-			if (MediaSource.isTypeSupported(bufferType) === false) {
-				reject(new Error('Media type is not supported:', bufferType));
+
+	_checkVideoBuffer() {
+		const {shouldGetData, bufferEmptyAtTime} = this._videoController.checkBuffer(this._manifest);
+
+		if (shouldGetData) {
+			this._checkCachedData(bufferEmptyAtTime);
+		}
+	}
+
+
+	_checkCachedData(bufferEmptyAtTime) {
+
+		const fragmentIndex = this._manifest.getFragmentIndex(bufferEmptyAtTime);
+
+		// check through all streams to find any cached fragment
+
+		let fragment = this._manifest.getCachedFragment(fragmentIndex);
+		const streamIndex = BandwidthManager.getQuality(this._manifest);
+		let stream;
+
+		// is there a fragment in the cache
+		if (fragment) {
+			stream = this._manifest.getStream(fragment.streamIndex);
+
+			// do we have the init fragment for the stream
+			if (stream.isInitialised) {
+
+				if (this._sourceController.isInitialised === false) {
+					this._sourceController.initialise(stream)
+						.then(() => {
+							this._checkVideoBuffer()
+						})
+						.catch(this._onError);
+				} else if (this._sourceController.quality === fragment.stream.index) {
+					if (this._isUpdating === false) {
+						this._isUpdating = true;
+
+						this._sourceController.appendToBuffer(fragment)
+							.then(() => {
+								console.log('_checkCachedData COMPLETE');
+								this._isUpdating = false;
+								this._checkVideoBuffer()
+							})
+							.catch(this._onError);
+					}
+				} else {
+					console.log('APPEND DIFFERENT STREAM');
+					if (this._isUpdating === false) {
+						this._isUpdating = true;
+
+						Promise.resolve()
+							.then(() => this._sourceController.appendToBuffer(stream.getFragmentInit()))
+							.then(() => this._sourceController.appendToBuffer(fragment))
+							.then(() => {
+								console.log('_checkCachedData COMPLETE');
+								this._isUpdating = false;
+								this._checkVideoBuffer()
+							})
+							.catch(this._onError);
+					}
+					
+				}
+			} else {
+				// load stream init
+				LoadManager.getData(stream.getFragmentInit())
+					.then( fragment => this._checkVideoBuffer()) // now data has loaded re check cached data 
+					.catch(this._onError);
+			}
+		} else {
+			stream = this._manifest.getStream(streamIndex);
+			fragment = stream.getFragment(fragmentIndex);
+			const getDataPromises = [LoadManager.getData(fragment)];
+
+			if (stream.isInitialised === false) {
+				getDataPromises.push(LoadManager.getData(stream.getFragmentInit()));
 			}
 
-			videoElement.src = null;
-
-			mediaSource.addEventListener('sourceopen', onSourceOpen);
-
-			let sourceURL = window.URL.createObjectURL(mediaSource);
-			videoElement.src = sourceURL;
-
-			function onSourceOpen() {
-				window.URL.revokeObjectURL(sourceURL);
-
-				mediaSource.removeEventListener('sourceopen', onSourceOpen);
-
-				const sourceBuffer = mediaSource.addSourceBuffer(bufferType);
-
-				resolve({mediaSource, sourceBuffer});
-			}
-		});
-	}
-
-
-	_onReceiveFragment(arrayBuffer, isFinalFragment = false) {
-		console.log('_onReceiveFragment arrayBuffer length: ' + arrayBuffer.length);
-		this._sourceBuffer.appendBuffer(arrayBuffer);
-
-		// if (this._videoElement.paused) {
-		// 	this._videoElement.play(); // Start playing if paused
-		// }
-
-		if (isFinalFragment) {
-			this._sourceBuffer.addEventListener('updateend', this._endStream);
-		}		
-	}
-
-
-	_onUpdateEnd() {
-		console.log('_onUpdateEnd');
-		
-		this._videoController.checkBuffer();
-	}
-
-
-	_endStream() {
-		if (this._mediaSource.readyState !== 'open') {
-			this._onError(new Error("MediaSource readyState is not open, can't end steam"));
+			Promise.all(getDataPromises)
+				.then( fragments => this._checkVideoBuffer()) // now data has loaded re check cached data 
+				.catch(this._onError);
 		}
 
-		this._mediaSource.endOfStream();
+		// if find one 
+			// check init fragment is there
+				// if current stream index matches fragment index 
+					// append cached buffer
+				// else 
+					// switch streams
+			// load fragment init
+				// if current stream index matches fragment index 
+					// append cached buffer
+				// else 
+					// switch streams
+		// else
+			// check init fragment is there
+				// load fragment
+					// if current stream index matches fragment index 
+						// append cached buffer
+					// else 
+						// switch streams
+			// else
+				// load fragment and init
+					// if current stream index matches fragment index 
+						// append cached buffer
+					// else 
+						// switch streams
+
 	}
 
 
-	_onError(error) {
-		console.error(error);
+	_onTimeUpdate() {
+		this._checkVideoBuffer();
+
+		this.dispatchEvent(Player.EVENT_TIME_UPDATE, this._manifest);
 	}
+
+
+	_onError(errorObject) { throw errorObject }
 } 

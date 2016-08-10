@@ -1,3 +1,5 @@
+import Manifest from './manifest';
+
 export default class Fragment {
 
 
@@ -18,10 +20,22 @@ export default class Fragment {
 
 	_status = Fragment.status.EMPTY;
 
+	_isLast = false;
 
-	constructor(index, url) {
+	_isInit = false;
+
+	_streamIndex = null;
+
+	_stream = null;
+
+
+	constructor(index, url, streamIndex, stream, isLast = false) {
 		this._index = index;
 		this._url = url;
+		this._isLast = isLast;
+		this._isInit = index === -1;
+		this._streamIndex = streamIndex;
+		this._stream = stream;
 	}
 
 
@@ -37,6 +51,10 @@ export default class Fragment {
 		this._bytes = arrayBuffer;
 		this._size = arrayBuffer.length;
 		this._status = Fragment.status.LOADED;
+
+		if (this._isInit) {
+			this._stream.isInitialised = true;
+		}
 	}
 
 
@@ -59,6 +77,29 @@ export default class Fragment {
 		return this._url;
 	}
 
+
+	get isInit() {
+		return this._isInit;
+	}
+
+
+	get isLast() {
+		return this._isLast;
+	}
+
+
+	get streamIndex() {
+		return this._streamIndex;
+	}
+
+
+	get stream() {
+		return this._stream;
+	}
+
+	get index() {
+		return this._index;
+	}
 
 	isLoading() {
 		if (this._status !== Fragment.status.EMPTY) {

@@ -2,11 +2,25 @@
 <html>
 <head>
 	<title>MSE Client</title>
+	<style type="text/css">
+		body, html {
+			margin: 0;
+			padding; 0;
+		}
+
+		.minimal-dash__video {
+			width: 100vw;
+			height: calc(100 / 16 * 9vw);
+		}
+
+	</style>
 </head>
 <body>
-<video>
-	
-</video>
+
+<video class="minimal-dash__video" controls></video>
+
+<canvas class="minimal-dash__buffer-output"></canvas>
+
 <script type="text/javascript" src="dist/js/client.js"></script>
 </body>
 </html>
