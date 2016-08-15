@@ -22,6 +22,8 @@ class LoadManager extends EventEmitter {
 
 	_manifests = null;
 
+	_root = "";
+
 
 
 
@@ -42,7 +44,11 @@ class LoadManager extends EventEmitter {
 
 	getManifest(manifestURL) { return this._getManifest(manifestURL) }
 
+	
+
 	getData(fragment) { return this._getData(fragment) }
+
+	set root(url) { this._root = url }
 
 
 
@@ -87,13 +93,14 @@ class LoadManager extends EventEmitter {
 	 * @returns Promise
 	 */
 	_getData(fragment) {
-		const url = 'streams/' + fragment.url;
+		const url = this._root + fragment.url;
 
-		BandwidthManager.start(url);
+		fragment.isLoading();
+		BandwidthManager.start(fragment);
 		
 		return FetchXHR2.fetch(url, 'arraybuffer')
 			.then(function(arraybuffer) {
-				BandwidthManager.stop(url, arraybuffer.length);
+				BandwidthManager.stop(fragment, arraybuffer.length);
 				fragment.bytes = arraybuffer;
 				return fragment;
 			})

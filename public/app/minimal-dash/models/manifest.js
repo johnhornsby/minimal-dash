@@ -73,22 +73,10 @@ export default class Manifest {
 		return Math.floor(time / (this._fragmentDuration / 1000));
 	}
 
-	getCachedFragment(index) {
-		// @TODO account for loading fragments
+	getCachedFragment(index) { return this._getFragmentWithStatus(index) }
 
-		let fragment;
+	getLoadingFragment(index) { return this._getFragmentWithStatus(index, Fragment.status.LOADING ) }
 
-		const cachedStream = this._streams.find((stream, streamIndex) => {
-			fragment = stream.getFragment(index);
-			return fragment.status === Fragment.status.LOADED;
-		});
-
-		if (cachedStream) {
-			return cachedStream.getFragment(index);
-		} else {
-			return null;
-		}
-	}
 
 
 
@@ -162,6 +150,21 @@ export default class Manifest {
 			return {
 				value: this.getStream(streamImcrement)
 			}
+		}
+	}
+
+	_getFragmentWithStatus(index, status = Fragment.status.LOADED) {
+		let fragment;
+
+		const cachedStream = this._streams.find((stream, streamIndex) => {
+			fragment = stream.getFragment(index);
+			return fragment.status === status;
+		});
+
+		if (cachedStream) {
+			return cachedStream.getFragment(index);
+		} else {
+			return null;
 		}
 	}
 }

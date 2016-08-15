@@ -1,3 +1,5 @@
+import LoadManager from './load';
+import {removeSpikes} from '../../util/stats';
 
 const MEASURE_TIME_LIMIT = 3;
 
@@ -23,6 +25,8 @@ class BandwidthManager {
 
 	_history = null;
 
+	_ping = null;
+
 
 
 
@@ -46,9 +50,9 @@ class BandwidthManager {
 
 	getQuality(manifest) { return this._getQuality(manifest) }
 
+	get ping() { return this._ping }
 
-
-
+	calculatePing(manifest) { return this._calculatePing(manifest) }
 
 
 
@@ -62,24 +66,34 @@ class BandwidthManager {
 	}
 
 
-	_start(identifier) {
+	_start(fragment) {
+		const identifier = fragment.url;
+		const {bandwidth, range} = this._getBandwidth();
+
 		this._history.push({
 			identifier: identifier,
-			start: new Date().getTime()
+			start: new Date().getTime(),
+			range: range,
+			estimatedBandwidth: bandwidth
 		})
 	}
 
 
-	_stop(identifier, bytes) {
+	_stop(fragment, bytes) {
+		const identifier = fragment.url;
+
 		const historyData = this._findIndetifier(identifier);
 		if (historyData) {
 			historyData.end = new Date().getTime();
 			historyData.bytes = bytes;
-			historyData.time = historyData.end - historyData.start;
-			historyData.bandwidth = (1000 / historyData.time) * bytes;
+			historyData.time = Math.max((historyData.end - historyData.start) - this._ping, 0);
+			historyData.ping = this._ping;
+			historyData.bandwidth = (1000 / historyData.time) * bytes * 8; // in bits
 
 			console.dir(historyData);
 		}
+
+		fragment.loadData = historyData;
 	}
 
 
@@ -97,17 +111,24 @@ class BandwidthManager {
 
 
 	_getBandwidth() {
-		// @TODO properly analyse the history data
+
 		if (this._history.length > 0) {
-			return this._history[this._history.length - 1].bandwidth;
+			const bandwidths = this._history.map(history => history.bandwidth);
+			const clippedBandwidth = removeSpikes(bandwidths);
+			const sum = clippedBandwidth.reduce((previous, next) => previous + next);
+			const bandwidth = sum / clippedBandwidth.length;
+
+			console.log('bandwidth: ' + bandwidth);
+
+			return { bandwidth:bandwidth, range: { start: clippedBandwidth[0], end: clippedBandwidth[clippedBandwidth.length - 1]}};
 		} else {
-			return INITIAL_BANDWIDTH;
+			return { bandwidth: INITIAL_BANDWIDTH, range: {start: INITIAL_BANDWIDTH, end: INITIAL_BANDWIDTH}};
 		}
 	}
 
 
 	_getQuality(manifest) {
-		const bandwidth = this._getBandwidth();
+		const {bandwidth, range} = this._getBandwidth();
 		let increment = 0;
 		let streamIndex = manifest.numberOfStreams - 1; // initially set to minimum
 
@@ -120,9 +141,44 @@ class BandwidthManager {
 
 			increment++;
 		}
-		// debugger;
+
 		return streamIndex;
-		// return Math.round(Math.random()) + 3;
+	}
+
+
+	_calculatePing(manifest) {
+		return new Promise((resolve, reject) => {
+			let decriment = manifest.numberOfStreams;
+
+			const initFragments = [];
+
+			const loadInitFragment = () =>  {
+				const fragment = manifest.getStream(decriment - 1).getFragmentInit();
+
+				initFragments.push(fragment);
+
+				LoadManager.getData(fragment)
+					.then(() => {
+						if (decriment -= 1 > 0) {
+							loadInitFragment();
+						} else {
+
+							const times = initFragments.map(fragment => fragment.loadData.time);
+							const clippedTimes = removeSpikes(times);
+							const sum = clippedTimes.reduce((previous, next) => previous + next);
+
+							// average load time of init fragments
+							this._ping = sum / clippedTimes.length;
+
+							resolve(this._ping);
+						}
+					})
+					.catch( error => { throw error });
+			}
+
+			loadInitFragment();
+		});
+		
 	}
 
 }

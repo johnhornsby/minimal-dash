@@ -28,6 +28,8 @@ export default class Fragment {
 
 	_stream = null;
 
+	_loadData = null;
+
 
 	constructor(index, url, streamIndex, stream, isLast = false) {
 		this._index = index;
@@ -99,6 +101,14 @@ export default class Fragment {
 
 	get index() {
 		return this._index;
+	}
+
+	set loadData(data) {
+		this._loadData = data;
+	}
+
+	get loadData() {
+		return this._loadData;
 	}
 
 	isLoading() {

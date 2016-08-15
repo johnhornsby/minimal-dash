@@ -84,7 +84,7 @@ export default class VideoElement extends EventEmitter {
 
 
 	_onVideoEvent(event) {
-		console.log(event.type);
+		// console.log(event.type);
 
 		switch(event.type) {
 		case 'durationchange':
@@ -101,9 +101,9 @@ export default class VideoElement extends EventEmitter {
 			// this._checkBuffer();
 			this.emit(VideoElement.EVENT_TIME_UPDATE);
 		case 'canplaythrough':
-			if (this._videoElement.paused) {
-				this._videoElement.play();
-			}
+			// if (this._videoElement.paused) {
+			// 	this._videoElement.play();
+			// }
 			
 		}
 	}

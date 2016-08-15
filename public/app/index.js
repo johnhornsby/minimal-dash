@@ -22,12 +22,20 @@ class Main {
 	_init() {
 		const videoElement = document.querySelector('video');
 
-		const player = new Player(videoElement, '/public/streams/stream.mpd');
+		//'/public/streams/stream.mpd'
+
+		const url = "https://s3-eu-west-1.amazonaws.com/johnhornsby.me/projects/verusmodus/preview/streams/stream.mpd";
+
+		const player = new Player(videoElement, url);
 
 		const bufferOutput = new BufferOutput(player, videoElement, document.querySelector('.minimal-dash__buffer-output'));
 
-		player.addEventListener(Player.EVENT_TIME_UPDATE, (event, manifest) => {
-			bufferOutput.draw(manifest);
+		player.addEventListener(Player.EVENT_MANIFEST_LOADED, (event, manifest) => {
+			bufferOutput.manifest = manifest;
+		});
+
+		player.addEventListener(Player.EVENT_TIME_UPDATE, (event) => {
+			bufferOutput.draw();
 		});
 	}
 }

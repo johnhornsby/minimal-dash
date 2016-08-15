@@ -153,7 +153,7 @@ export default class Source extends EventEmitter {
 			// }
 
 			if (fragment.isLast) {
-				// this._sourceBuffer.addEventListener('updateend', this._endStream);
+				this._sourceBuffer.addEventListener('updateend', this._endStream);
 			}
 
 			sourceBuffer.addEventListener('updateend', onUpdateEnd);
@@ -185,6 +185,8 @@ export default class Source extends EventEmitter {
 		}
 
 		this._mediaSource.endOfStream();
+		console.log('Source endOfStream()');
+		this._sourceBuffer.removeEventListener('updateend', this._endStream);
 	}
 
 

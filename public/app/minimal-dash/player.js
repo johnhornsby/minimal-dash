@@ -3,12 +3,15 @@ import VideoController from './controllers/video-element';
 import SourceController from './controllers/source';
 import BandwidthManager from './managers/bandwidth';
 import EventEmitter from '../util/event-emitter';
+import Fragment from './models/fragment';
 
 
 export default class Player extends EventEmitter {
 
 
 	static EVENT_TIME_UPDATE = 'eventTimeUpdate';
+
+	static EVENT_MANIFEST_LOADED = 'eventManifestLoaded';
 
 
 	// controller of the video element
@@ -27,6 +30,7 @@ export default class Player extends EventEmitter {
 	_streamIndex = null;
 
 	_isUpdating = false;
+
 
 
 	constructor(videoElement, manifestURL) {
@@ -64,6 +68,8 @@ export default class Player extends EventEmitter {
 	_init() {
 		this._bind();
 
+		LoadManager.root = this._manifestURL.split("/").splice(0,this._manifestURL.match(/\//g).length).join("/") + "/";
+
 		this._videoController = new VideoController(this._videoElement);
 		this._videoController.on(VideoController.EVENT_TIME_UPDATE, this._onTimeUpdate);
 		this._sourceController = new SourceController(this._videoController);
@@ -73,7 +79,17 @@ export default class Player extends EventEmitter {
 			.then( manifest => {
 				this._manifest = manifest;
 
-				this._checkVideoBuffer();
+				this.dispatchEvent(Player.EVENT_MANIFEST_LOADED, this._manifest);
+
+				BandwidthManager.calculatePing(manifest)
+					.then( ping => {
+						this._checkVideoBuffer();
+						console.log('PING = ' + ping);
+					});
+
+
+
+				//this._checkVideoBuffer();
 
 				// this._sourceController.initialise(manifest.getStream(5))
 				// 		.then(() => {
@@ -155,6 +171,7 @@ export default class Player extends EventEmitter {
 
 
 	_checkVideoBuffer() {
+		// check video element buffer
 		const {shouldGetData, bufferEmptyAtTime} = this._videoController.checkBuffer(this._manifest);
 
 		if (shouldGetData) {
@@ -168,14 +185,12 @@ export default class Player extends EventEmitter {
 		const fragmentIndex = this._manifest.getFragmentIndex(bufferEmptyAtTime);
 
 		// check through all streams to find any cached fragment
-
 		let fragment = this._manifest.getCachedFragment(fragmentIndex);
-		const streamIndex = BandwidthManager.getQuality(this._manifest);
 		let stream;
 
 		// is there a fragment in the cache
 		if (fragment) {
-			stream = this._manifest.getStream(fragment.streamIndex);
+			stream = fragment.stream;
 
 			// do we have the init fragment for the stream
 			if (stream.isInitialised) {
@@ -222,17 +237,31 @@ export default class Player extends EventEmitter {
 					.catch(this._onError);
 			}
 		} else {
-			stream = this._manifest.getStream(streamIndex);
-			fragment = stream.getFragment(fragmentIndex);
-			const getDataPromises = [LoadManager.getData(fragment)];
 
-			if (stream.isInitialised === false) {
-				getDataPromises.push(LoadManager.getData(stream.getFragmentInit()));
+			// there maybe no cached fragment but there may one one loading
+			const loadingFragment = this._manifest.getLoadingFragment(fragmentIndex);
+
+			// check for loading fragment
+			if (loadingFragment == null) {
+				const streamIndex = BandwidthManager.getQuality(this._manifest);
+
+				stream = this._manifest.getStream(streamIndex);
+				fragment = stream.getFragment(fragmentIndex);
+
+				if (fragment.status === Fragment.status.EMPTY) {
+					const getDataPromises = [LoadManager.getData(fragment)];
+
+					if (stream.isInitialised === false) {
+						getDataPromises.push(LoadManager.getData(stream.getFragmentInit()));
+					}
+
+					Promise.all(getDataPromises)
+						.then( fragments => this._checkVideoBuffer()) // now data has loaded re check cached data 
+						.catch(this._onError);
+				} else {
+					throw Error('Stream is not empty')
+				}
 			}
-
-			Promise.all(getDataPromises)
-				.then( fragments => this._checkVideoBuffer()) // now data has loaded re check cached data 
-				.catch(this._onError);
 		}
 
 		// if find one 

@@ -1,4 +1,4 @@
-
+import Fragment from '../models/fragment';
 
 export default class BufferOutput {
 
@@ -33,7 +33,13 @@ export default class BufferOutput {
 	Public
 	_____________________________________________*/
 
-	draw(manifest) { this._draw(manifest) }
+	draw() { this._draw() }
+
+	set manifest(manifest) {
+		this._manifest = manifest
+		this._layout();
+		this._draw();
+	}
 
 
 
@@ -45,81 +51,249 @@ export default class BufferOutput {
 	_____________________________________________*/
 	_init() {
 		this._bind();
-		this._canvas.addEventListener('resize', this._onResize);
+		window.addEventListener('resize', this._onResize);
 		this._ctx = this._canvas.getContext('2d');
 	}
 
 
 	_bind() {
-		// this._onResize = ::this._onResize;
+		this._onResize = ::this._onResize;
 	}
 
 
-	// _onResize() {
-	// 	this._draw();
-	// }
+	_onResize() {
+		this._layout();
+		this._draw();
+	}
 
 
-	_draw(manifest) {
-
-		let row = 0;
-		let col = 0;
+	_layout() {
 		let rowHeight = 10;
 
-		if (this._manifest == null) {
-			this._manifest = manifest;
-			this._canvas.height = manifest.numberOfStreams * rowHeight + (manifest.numberOfStreams - 1);
-			this._canvas.width = window.innerWidth;
+		this._canvas.height = this._video.clientHeight;
+
+		//this._canvas.height = this._manifest.numberOfStreams * rowHeight + (this._manifest.numberOfStreams - 1);
+		this._canvas.width = this._video.clientWidth;
+	}
+
+
+	_draw() {
+		if (this._canvas.width !== this._video.clientWidth || this._canvas.height !== this._video.clientHeight ) {
+			this._layout();
 		}
 
-		const ctx = this._ctx;
+		const manifest = this._manifest;
+		const margin = 20;
+		const gutter = 1;
+		const w = this._canvas.width - (margin * 2);
+		const h = this._canvas.height - (margin * 2);
+		const x = margin;
+		const y = margin;
+		let decrementedRemainder = 0;
+		let col = 0;
+		let colWidth = 0;
+		const colWidths = [];
 
-		ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
+		// create column widths array
+		let colWidthPlusGutter = Math.floor((w + gutter) / manifest.numberOfFragments);
+		// calculate the remaining gap to divide up to ensure nice fit across full width
+		let remainder = w - ((colWidthPlusGutter * manifest.numberOfFragments) - gutter);
 
-		
-		let colWidth = Math.floor((this._canvas.width / manifest.numberOfFragments) - 1);
-		// let remainder = this._canvas.width - ((Math.floor(colWidth) + 1) * manifest.numberOfFragments);
-		// colWidth = Math.floor(colWidth);
-		let remainder = this._canvas.width - ((Math.floor(colWidth) + 1) * manifest.numberOfFragments);
-
-		let decrementedRemainder;
-		let updatedColWidth;
-		let colWidthFloor = colWidth = Math.floor(colWidth);
 		for (let stream of manifest) {
-			row = stream.index * (rowHeight + 1);
-
+			
 			decrementedRemainder = remainder;
+			col = x;
 			
 			for (let fragment of stream) {
-				updatedColWidth = colWidthFloor;
+				colWidth = colWidthPlusGutter - gutter;
 
-				// if (decrementedRemainder > 0) {
-				// 	updatedColWidth = colWidth + 1;
-				// 	decrementedRemainder -= 1;
-				// }
+				// supliment column width from reminder until gone
+				if (decrementedRemainder > 0) {
+					colWidth += 1;
+					decrementedRemainder -= 1;
+				}
 
-				col = fragment.index * (updatedColWidth + 1);
+				colWidths.push({
+					x: col,
+					w: colWidth,
+					r: col + colWidth + gutter
+				});
 
-				this._drawBox(col, row, updatedColWidth, rowHeight, fragment, ctx);
+				col += colWidth + gutter;
 			}
 		}
 
-		const playheadX = (this._video.currentTime / manifest.duration) * this._canvas.width;
+		const fragmentsBottom = this._drawFragments(colWidths, x, y, w, h);
+
+		this._drawBandwidth(colWidths, x, fragmentsBottom + margin , w, h - fragmentsBottom);
+
+	}
+
+
+	_drawFragments(colWidths, x, y, w, h) {
+		const manifest = this._manifest;
+		const ctx = this._ctx;
+		let row = y;
+		let rowHeight = 10;
+		const gutter = 1;
+		let fIdx = 0;
+
+		ctx.clearRect(x, y, w, h);
+
+		for (let stream of manifest) {
+			fIdx = 0;
+
+			for (let fragment of stream) {
+
+				this._drawBox(colWidths[fIdx].x, row, colWidths[fIdx].w, rowHeight, fragment, ctx);
+
+				fIdx += 1;
+			}
+
+			row += rowHeight + gutter;
+		}
+
+		const playheadX = Math.round(x + (this._video.currentTime / manifest.duration) * w);
 		ctx.fillStyle = "#FF0000";
-		ctx.fillRect(playheadX, 0, 1, this._canvas.height);
+		ctx.fillRect(playheadX, y, 1, row - y);
+
+		return row;
+	}
+
+
+	_drawBandwidth(colWidths, x, y, w, h) {
+		const manifest = this._manifest;
+		const ctx = this._ctx;
+		let fIdx = 0;
+
+		ctx.clearRect(x, y, w, h);
+		ctx.beginPath();
+		ctx.lineWidth="1";
+		ctx.strokeStyle="white";
+		ctx.rect(x + 0.5, y + 0.5, w - 1, h - 1);
+		ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+		ctx.fill();
+		ctx.stroke();
+
+		ctx.font = "10px Arial";
+		// let ping = '';
+		// if (this._manifest.getFragment(0,0).loadData) {
+		// 	ping = `ping: ${this._manifest.getFragment(0,0).loadData.ping}`;
+		// }
+
+
+		// ctx.fillText(ping, x + 10, y + 10);
+
+		const loadedFragments = [];
+		let fragment;
+		for (let i = 0; i < manifest.numberOfFragments; i++) {
+			for (let s = 0; s < manifest.numberOfStreams; s++) {
+				fragment = manifest.getFragment(s, i);
+				if (fragment.status === Fragment.status.LOADED) {
+					loadedFragments.push(fragment);
+					break;
+				}
+			}
+		}
+
+		if (loadedFragments.length === 0) return;
+
+		const bandwidths = loadedFragments.map(fragment => fragment.loadData.bandwidth);
+		const estimatedBandwidths = loadedFragments.map(fragment => fragment.loadData.estimatedBandwidth);
+
+		let maxBandwidth = bandwidths.reduce(function(previous, next) {
+			return Math.max(previous, next)
+		});
+
+		// console.log('max bandwidth '+ maxBandwidth);
+
+		// round to nearest 10
+		maxBandwidth = Math.pow(10, String(Math.round(maxBandwidth)).length);
+		const maxBandwidthString =  `${maxBandwidth / 1000000} mbits / s`;
+		ctx.fillStyle = "white";
+		ctx.fillText(maxBandwidthString, x + 10, y + 20);
+
+
+		for (let bandwidth of bandwidths) {
+			let row = y + (h - ((bandwidth / maxBandwidth) * h));
+
+			let x = colWidths[fIdx].x + (colWidths[fIdx].w / 2);
+
+			ctx.beginPath();
+			
+			ctx.arc(x, row, 1, 0, 2 * Math.PI, false);
+			ctx.fillText(fIdx + 1, x + 10, row);
+			ctx.fillStyle = 'white';
+			ctx.fill();
+
+			fIdx += 1;
+		}
+
+
+
+
+
+		ctx.beginPath();
+		ctx.lineWidth = "1";
+		ctx.strokeStyle = "white";
+		ctx.moveTo(0,0);
+		fIdx = 0;
+
+		//ctx.moveTo(colWidths[fIdx].x + (colWidths[fIdx].w / 2), bandwidths[0]);
+		for (let bandwidth of bandwidths) {
+
+			let x = colWidths[fIdx].x + (colWidths[fIdx].w / 2);
+			let row = y + (h - ((bandwidth / maxBandwidth) * h));
+
+			if (fIdx === 0) {
+				ctx.moveTo(x, row);
+			}
+
+			ctx.lineTo(x, row);
+
+			fIdx += 1;
+		}
+		ctx.stroke();
+
+
+		
+
+		ctx.beginPath();
+		ctx.lineWidth = "1";
+		ctx.strokeStyle = "red";
+		ctx.moveTo(0,0);
+		fIdx = 0;
+
+		//ctx.moveTo(colWidths[fIdx].x + (colWidths[fIdx].w / 2), bandwidths[0]);
+		for (let bandwidth of estimatedBandwidths) {
+
+			let x = colWidths[fIdx].x + (colWidths[fIdx].w / 2);
+			let row = y + (h - ((bandwidth / maxBandwidth) * h));
+
+			if (fIdx === 0) {
+				ctx.moveTo(x, row);
+			}
+
+			ctx.lineTo(x, row);
+
+			fIdx += 1;
+		}
+		ctx.stroke();
+		
+
 	}
 
 
 	_drawBox(col, row, colWidth, rowHeight, fragment, ctx) {
 		switch (fragment.status) {
 			case 'empty':
-				ctx.fillStyle = "#CCCCCC";
+				ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
 				break;
 			case 'loading':
-				ctx.fillStyle = "#666666";
+				ctx.fillStyle = "#FF0000";
 				break;
 			case 'loaded':
-				ctx.fillStyle = "#00FFFF";
+				ctx.fillStyle = "rgba(255, 255, 255, 1)";
 				break;
 		}
 		ctx.fillRect(col, row, colWidth, rowHeight);
