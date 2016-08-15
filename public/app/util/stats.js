@@ -3,6 +3,11 @@
  * represent the typical varience within the typical range of values
  */
 export function removeSpikes(values) {
+
+	if (values.length < 2) {
+		return values;
+	}
+
 	const sortedValues = values.sort((a, b) => a > b);
 	const median = getMedian(sortedValues);
 
@@ -56,6 +61,14 @@ export function removeSpikes(values) {
 export function getMedian(sortedValues) {
 	let startIndex = Math.floor(sortedValues.length / 2) - 1;
 	let endIndex = Math.ceil(sortedValues.length / 2) - 1;
+
+	if (sortedValues.length === 0) {
+		return null;
+	}
+
+	if (sortedValues.length === 1) {
+		return sortedValues[0];
+	}
 
 	if (startIndex === endIndex) {
 		return sortedValues[startIndex];

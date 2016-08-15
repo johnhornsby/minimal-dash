@@ -73,6 +73,7 @@ class BandwidthManager {
 		this._history.push({
 			identifier: identifier,
 			start: new Date().getTime(),
+			type: (fragment.isInit)? 'init': 'media',
 			range: range,
 			estimatedBandwidth: bandwidth
 		})
@@ -111,9 +112,15 @@ class BandwidthManager {
 
 
 	_getBandwidth() {
-
+		
 		if (this._history.length > 0) {
-			const bandwidths = this._history.map(history => history.bandwidth);
+			let bandwidths = this._history.filter(history => history.type === 'media');
+			
+			if (bandwidths.length === 0) {
+				return { bandwidth: INITIAL_BANDWIDTH, range: {start: INITIAL_BANDWIDTH, end: INITIAL_BANDWIDTH}};
+			}
+			bandwidths = bandwidths.map(history => history.bandwidth);
+
 			const clippedBandwidth = removeSpikes(bandwidths);
 			const sum = clippedBandwidth.reduce((previous, next) => previous + next);
 			const bandwidth = sum / clippedBandwidth.length;
