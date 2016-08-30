@@ -1,9 +1,11 @@
 import LoadManager from './load';
 import {removeSpikes} from '../../util/stats';
 
-const MEASURE_TIME_LIMIT = 3;
+const MEASURE_TIME_LIMIT = 10000; // ms
 
-const INITIAL_BANDWIDTH = 1000000; // 1 MB / s
+const INITIAL_BANDWIDTH = 500000; // 1 MB / s
+
+
 
 
 let singleton = Symbol();
@@ -91,6 +93,10 @@ class BandwidthManager {
 			historyData.ping = this._ping;
 			historyData.bandwidth = (1000 / historyData.time) * bytes * 8; // in bits
 
+			if (isFinite(historyData.bandwidth) === false) {
+				historyData.bandwidth = null;
+			}
+
 			console.dir(historyData);
 		}
 
@@ -114,10 +120,15 @@ class BandwidthManager {
 	_getBandwidth() {
 		
 		if (this._history.length > 0) {
+
+			const now = new Date().getTime();
+			// use only media fragments
 			let bandwidths = this._history.filter(history => history.type === 'media');
+			// only use history measurements within MEASURE_TIME_LIMIT
+			//bandwidths = bandwidths.filter(history => history.start >= now - MEASURE_TIME_LIMIT);
 			
 			if (bandwidths.length === 0) {
-				return { bandwidth: INITIAL_BANDWIDTH, range: {start: INITIAL_BANDWIDTH, end: INITIAL_BANDWIDTH}};
+				return { bandwidth: INITIAL_BANDWIDTH, range: {start: INITIAL_BANDWIDTH, end: INITIAL_BANDWIDTH, set: [INITIAL_BANDWIDTH], all: [INITIAL_BANDWIDTH]}};
 			}
 			bandwidths = bandwidths.map(history => history.bandwidth);
 
@@ -125,11 +136,11 @@ class BandwidthManager {
 			const sum = clippedBandwidth.reduce((previous, next) => previous + next);
 			const bandwidth = sum / clippedBandwidth.length;
 
-			console.log('bandwidth: ' + bandwidth);
+			// console.log('bandwidth: ' + bandwidth);
 
-			return { bandwidth:bandwidth, range: { start: clippedBandwidth[0], end: clippedBandwidth[clippedBandwidth.length - 1]}};
+			return { bandwidth:bandwidth, range: { start: clippedBandwidth[0], end: clippedBandwidth[clippedBandwidth.length - 1], set: clippedBandwidth, all: bandwidths}};
 		} else {
-			return { bandwidth: INITIAL_BANDWIDTH, range: {start: INITIAL_BANDWIDTH, end: INITIAL_BANDWIDTH}};
+			return { bandwidth: INITIAL_BANDWIDTH, range: {start: INITIAL_BANDWIDTH, end: INITIAL_BANDWIDTH, set: [INITIAL_BANDWIDTH], all: [INITIAL_BANDWIDTH]}};
 		}
 	}
 
