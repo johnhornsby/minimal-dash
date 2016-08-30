@@ -25,4 +25,6 @@ module.exports = {
   	devServer: {
 		// noInfo: true
 	},
+
+	devTool: 'eval'
 }

@@ -1,7 +1,7 @@
 import LoadManager from './load';
 import {removeSpikes} from '../../util/stats';
 
-const MEASURE_TIME_LIMIT = 10000; // ms
+const MEASURE_TIME_LIMIT = 5000; // ms
 
 const INITIAL_BANDWIDTH = 500000; // 1 MB / s
 
@@ -97,7 +97,7 @@ class BandwidthManager {
 				historyData.bandwidth = null;
 			}
 
-			console.dir(historyData);
+			console.dir('historyData', historyData);
 		}
 
 		fragment.loadData = historyData;
@@ -125,14 +125,14 @@ class BandwidthManager {
 			// use only media fragments
 			let bandwidths = this._history.filter(history => history.type === 'media');
 			// only use history measurements within MEASURE_TIME_LIMIT
-			//bandwidths = bandwidths.filter(history => history.start >= now - MEASURE_TIME_LIMIT);
+			bandwidths = bandwidths.filter(history => history.start >= now - MEASURE_TIME_LIMIT);
 			
 			if (bandwidths.length === 0) {
 				return { bandwidth: INITIAL_BANDWIDTH, range: {start: INITIAL_BANDWIDTH, end: INITIAL_BANDWIDTH, set: [INITIAL_BANDWIDTH], all: [INITIAL_BANDWIDTH]}};
 			}
 			bandwidths = bandwidths.map(history => history.bandwidth);
 
-			const clippedBandwidth = removeSpikes(bandwidths);
+			const clippedBandwidth = removeSpikes(bandwidths, 0.5);
 			const sum = clippedBandwidth.reduce((previous, next) => previous + next);
 			const bandwidth = sum / clippedBandwidth.length;
 

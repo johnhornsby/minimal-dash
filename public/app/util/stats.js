@@ -2,7 +2,7 @@
  * Takes an array of numbers and pucks out any odd spike values that don't
  * represent the typical varience within the typical range of values
  */
-export function removeSpikes(values) {
+export function removeSpikes(values, tolerance = 0) {
 
 	// nothing to clip
 	if (values.length < 2) {
@@ -39,11 +39,32 @@ export function removeSpikes(values) {
 		return values[minIndex];
 	}
 
+	// Utility function to return the area of the variance against a possible max
+	function getAreaPercentage(values) {
+
+		let area = 0;
+		const max = values.reduce((previous, next) => Math.max(previous, next));
+		const min = values.reduce((previous, next) => { return Math.min(previous, next)}, max);
+		
+		const difference = max - min;
+		let maxArea = difference * (values.length - 1);
+
+		for (let i = 0; i < values.length; i++) {
+			area += values[i] - min;
+		}
+
+		return area / maxArea;
+	}
+
+	// first off remove nulls 
+	values = values.filter(value => value !== null && value !== undefined && value !== Number.POSITIVE_INFINITY && isNaN(value) === false);
+
+	// initial sort to begin to analyse the variance between the values
 	const sortedValues = values.sort((a, b) => a - b);
-	//const median = getMedian(sortedValues);
+	// we attempt to find a value that is more similar to all the others, we used to use the median here
 	const median = getValueOfLeastVariance(values);
 
-	// establish variances from median
+	// now log all variances from median
 	let variances = [];
 
 	for (let i = 0; i < sortedValues.length; i++) {
@@ -62,15 +83,13 @@ export function removeSpikes(values) {
 	// a large area signifies a wide range of variance across values, a small variance signifies a general
 	// small variance across typical values.
 	let area = 0;
-	variances.reduce(function(previous, next) {
-		area += previous.value + ((next.value - previous.value) / 2); // diagonal from one value to another
-		return next;
-	});
 
-	// calculate amount of variance
+	// calculate max amount of variance
 	const maxValue = variances[variances.length - 1].value;
-	const totalHalfArea = (variances.length * maxValue) / 2;
-	const maxAmountOfVarianceAllowed = (area / totalHalfArea) * maxValue;
+	const clipPercentage = getAreaPercentage(variances.map(variance => variance.value));
+	const toleranceAdjustment = (1 - clipPercentage) * tolerance;
+	const clipPercentageToleranceAdjusted = clipPercentage + toleranceAdjustment;
+	let maxAmountOfVarianceAllowed = maxValue * clipPercentageToleranceAdjusted;
 
 	// use only values that are within the max variance
 	let clippedValues = [];
@@ -89,6 +108,9 @@ export function removeSpikes(values) {
 
 	return clippedValues;
 }
+
+
+
 
 export function getMedian(sortedValues) {
 	let startIndex = Math.floor(sortedValues.length / 2) - 1;
