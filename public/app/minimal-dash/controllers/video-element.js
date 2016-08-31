@@ -43,6 +43,9 @@ export default class VideoElement extends EventEmitter {
 
 
 
+
+
+
 	/*_______________________________________________
 
 	Private
@@ -149,6 +152,10 @@ export default class VideoElement extends EventEmitter {
 				}
 			}
 		});
+
+		// if (bufferEmptyAtTime > this._videoElement.duration && shouldGetData) {
+		// 	debugger;
+		// }
 
 		// if there is no buffer surrounding currentTime, then set to currentTime
 		if (bufferEmptyAtTime === null) {

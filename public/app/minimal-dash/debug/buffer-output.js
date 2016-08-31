@@ -17,8 +17,6 @@ export default class BufferOutput {
 
 	constructor(player, video, canvas) {
 
-
-
 		this._canvas = canvas;
 
 		this._video = video;
@@ -95,11 +93,13 @@ export default class BufferOutput {
 		const h = 100;
 		const area = 0;
 
-		const maxBandwidth = loadData.range.all.reduce((previous, next) => Math.max(previous, next));
-		const minBandwidth = loadData.range.all.reduce((previous, next) => { return Math.min(previous, next)}, maxBandwidth);
+		let bandwidths = loadData.range.all.sort((a, b) => a - b);
+
+		const maxBandwidth = bandwidths[bandwidths.length - 1];
+		const minBandwidth = bandwidths[0];
 
 		const bandWidthDifference = maxBandwidth - minBandwidth;
-		const xModifer = w / (loadData.range.all.length - 1);
+		const xModifer = w / (bandwidths.length - 1);
 
 		// Draw Background
 		ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
@@ -115,8 +115,8 @@ export default class BufferOutput {
 			return ((bandwidth - minBandwidth) / bandWidthDifference) * h;
 		}
 
-		for (let i = 0; i < loadData.range.all.length; i++) {
-			let y = yMod(loadData.range.all[i]);
+		for (let i = 0; i < bandwidths.length; i++) {
+			let y = yMod(bandwidths[i]);
 			let yInvert = h - y;
 			let x = i * xModifer;
 
@@ -129,28 +129,11 @@ export default class BufferOutput {
 		ctx.fill();
 
 		// Draw Clip Line
-		// @TODO need to clip values to show logic 
+		let areaPercentage = this._getAreaPercentage(bandwidths);
 
-
-		// const clippedBandwidth = removeSpikes(loadData.range.all);
-
-
-		let areaPercentage = this._getAreaPercentage(loadData.range.all);
-		// const sum = clippedBandwidth.reduce((previous, next) => previous + next);
-		// const bandwidth = sum / clippedBandwidth.length;
-		// areaPercentage *= 2; // here we multiply by 2 because 50% area of whole is actually what we are determning to be full variance, ergo the percentage is of that.
-
+		// Render the clip line
 		ctx.fillStyle = "#FF0000";
 		ctx.fillRect(screenX, screenY + (h - (areaPercentage * h)), w, 1);
-
-		// (bandwidth - clippedBandwidth[0]) / (clippedBandwidth[clippedBandwidth.length - 1] - clippedBandwidth[0])
-
-		// ctx.fillStyle = "#00FFFF";
-		// ctx.fillRect(screenX, screenY + (h - ((bandwidth - clippedBandwidth[0]) / (clippedBandwidth[clippedBandwidth.length - 1] - clippedBandwidth[0]) * h)), w, 1);
-
-		// Draw Estimated Bandwidth
-
-
 	}
 
 
@@ -331,11 +314,11 @@ export default class BufferOutput {
 
 
 
-		console.dir({
-			'maxBandwidth': maxBandwidth,
-			bandwidth: bandwidths[bandwidths.length - 1],
-			range: ranges[ranges.length - 1],
-		});
+		// console.dir({
+		// 	'maxBandwidth': maxBandwidth,
+		// 	bandwidth: bandwidths[bandwidths.length - 1],
+		// 	range: ranges[ranges.length - 1],
+		// });
 		maxBandwidth *= 1.1;
 		//maxBandwidth = 1000000;
 		// if (isFinite(maxBandwidth) === false) {

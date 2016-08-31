@@ -44,8 +44,6 @@ class LoadManager extends EventEmitter {
 
 	getManifest(manifestURL) { return this._getManifest(manifestURL) }
 
-	
-
 	getData(fragment) { return this._getData(fragment) }
 
 	set root(url) { this._root = url }

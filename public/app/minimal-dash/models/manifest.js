@@ -135,7 +135,6 @@ export default class Manifest {
 
 
 	_next() {
-		
 		let streamImcrement = this._currentStreamIncrement;
 
 		this._currentStreamIncrement += 1;
@@ -152,6 +151,7 @@ export default class Manifest {
 			}
 		}
 	}
+	
 
 	_getFragmentWithStatus(index, status = Fragment.status.LOADED) {
 		let fragment;
