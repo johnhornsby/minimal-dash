@@ -28,6 +28,7 @@ class Main {
 
 		const player = new Player(videoElement, url);
 
+		// bufferOutput is simply used to debug at the moment
 		const bufferOutput = new BufferOutput(player, videoElement, document.querySelector('.minimal-dash__buffer-output'));
 
 		player.addEventListener(Player.EVENT_MANIFEST_LOADED, (event, manifest) => {
