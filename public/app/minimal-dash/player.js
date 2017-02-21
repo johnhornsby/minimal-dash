@@ -68,7 +68,7 @@ export default class Player extends EventEmitter {
 	_init() {
 		this._bind();
 
-		LoadManager.root = this._manifestURL.split("/").splice(0,this._manifestURL.match(/\//g).length).join("/") + "/";
+		LoadManager.root = this._manifestURL.split("/").splice(0, this._manifestURL.match(/\//g).length).join("/") + "/";
 
 		this._videoController = new VideoController(this._videoElement);
 		this._videoController.on(VideoController.EVENT_TIME_UPDATE, this._onTimeUpdate);

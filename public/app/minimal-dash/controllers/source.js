@@ -92,12 +92,12 @@ export default class Source extends EventEmitter {
 	 */
 	_initialiseMediaSource(stream, videoController, mediaSource) {
 		return new Promise((resolve, reject) => {
-
 			if (MediaSource.isTypeSupported(stream.bufferType) === false) {
 				reject(new Error('Media type is not supported:', stream.bufferType));
 			}
 
-			videoController.src = null;
+			// This caused an error on my macbook
+			// videoController.src = null;
 
 			mediaSource.addEventListener('sourceopen', onSourceOpen);
 

@@ -23,7 +23,7 @@ module.exports = {
 	},
 
   	devServer: {
-		// noInfo: true
+		noInfo: true
 	},
 
 	devTool: 'eval'

@@ -2,10 +2,10 @@
   "name": "minimal-dash",
   "version": "0.0.1",
   "description": "Minimal MPEG Dash Video Player",
-  "main": "webpack-dev-server --port 4000",
+  "main": "webpack-dev-server --port 4000 -d",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "webpack-dev-server --port 4000"
+    "start": "webpack-dev-server --port 4000 -d"
   },
   "keywords": [
     "MSE",
