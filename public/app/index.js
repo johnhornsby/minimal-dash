@@ -22,8 +22,6 @@ class Main {
 	_init() {
 		const videoElement = document.querySelector('video');
 
-		//'/public/streams/stream.mpd'
-
 		const url = "https://s3-eu-west-1.amazonaws.com/johnhornsby.me/projects/verusmodus/preview/streams/stream.mpd";
 
 		const player = new Player(videoElement, url);
@@ -37,6 +35,14 @@ class Main {
 
 		player.addEventListener(Player.EVENT_TIME_UPDATE, (event) => {
 			bufferOutput.draw();
+		});
+
+		document.querySelector('.minimal-dash__play-pause').addEventListener('click', function() {
+			if (player.paused) {
+				player.play();
+			} else {
+				player.pause();
+			}
 		});
 	}
 }

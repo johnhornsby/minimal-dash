@@ -60,22 +60,57 @@ export default class Player extends EventEmitter {
 	// get autoplay() {}
 	// set autoplay() {}
 
-	get duration() { this._videoController.duration }
 
-	get currentTime() { this._videoController.currentTime }
+	/**
+	 * Getter of video currentTime currently used in debugging
+	 *
+	 * @public
+	 * @returns {Number} the video current time
+	 */
+	get currentTime() { return this._videoController.currentTime }
+
+
+	/**
+	 * Getter of video duration
+	 *
+	 * @public
+	 * @returns {Number} the video current duration
+	 */
+	get duration() { return this._videoController.duration }
 
 	// @TODO
 	// set loop() {}
 	// get loop() {}
 
-	// @TODO
-	// play() {
 
-	// }
 
-	// pause() {
+	/**
+	 * Getter of video paused status
+	 *
+	 * @public
+	 * @returns {Boolean} the video paused status
+	 */
+	get paused() { return this._videoController.paused }
 
-	// }
+
+	/**
+	 * Instruct the video element to play
+	 *
+	 * @public
+	 */
+	play() {
+		this._videoController.play();
+	}
+
+
+	/**
+	 * Instruct the video element to pause
+	 *
+	 * @public
+	 */
+	pause() {
+		this._videoController.pause();
+	}
 
 
 
@@ -168,15 +203,6 @@ export default class Player extends EventEmitter {
 		if (shouldGetData) {
 			this._checkCachedData(bufferEmptyAtTime);
 		} 
-
-		// else {
-			
-		// 	if (this._videoController.autoplay && this._videoController.paused) {
-		// 		console.log("OK AUTOPLAY GO GO GO");
-		// 		this._videoController.play();
-		// 	}
-		// }
-
 	}
 
 
