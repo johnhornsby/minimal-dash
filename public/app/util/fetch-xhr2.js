@@ -55,13 +55,19 @@ export default class FetchXHR2 {
 					reject(`${event.type}`);
 					break;
 				case 'timeout':
+					reject(`${event.type}`);
 					break;
 				case 'load':
 					handleLoad(event);
 					break;
 				case 'readystatechange':
 					if (xhr.readyState === 2 && xhr.status === 404) {
-						reject(`FetchXHR2:${event.type} - ${xhr.status} ${xhr.statusText} ${url}`);
+						const error = new Error(`FetchXHR2:${event.type} - readyState:${xhr.readyState} status:${xhr.status} statusText:${xhr.statusText} url:${url}`);
+						reject(error);
+					}
+					if (xhr.readyState === 4 && xhr.status !== 200) {
+						const error = new Error(`FetchXHR2:${event.type} - readyState:${xhr.readyState} status:${xhr.status} statusText:${xhr.statusText} url:${url}`);
+						reject(error);
 					}
 					break;
 				}

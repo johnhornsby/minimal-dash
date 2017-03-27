@@ -1,3 +1,7 @@
+/** 
+ * Main controller class for the Minimal Dash Player.
+ */
+
 import LoadManager from './managers/load';
 import VideoController from './controllers/video-element';
 import SourceController from './controllers/source';
@@ -29,8 +33,6 @@ export default class Player extends EventEmitter {
 	// current stream index
 	_streamIndex = null;
 
-	_isUpdating = false;
-
 
 
 	constructor(videoElement, manifestURL) {
@@ -41,7 +43,7 @@ export default class Player extends EventEmitter {
 		this._manifestURL = manifestURL;
 
 
-		this._init();
+		this._initPlayer();
 	}
 
 
@@ -54,6 +56,26 @@ export default class Player extends EventEmitter {
 	Public
 	_______________________________________________*/
 
+	// @TODO
+	// get autoplay() {}
+	// set autoplay() {}
+
+	get duration() { this._videoController.duration }
+
+	get currentTime() { this._videoController.currentTime }
+
+	// @TODO
+	// set loop() {}
+	// get loop() {}
+
+	// @TODO
+	// play() {
+
+	// }
+
+	// pause() {
+
+	// }
 
 
 
@@ -65,122 +87,138 @@ export default class Player extends EventEmitter {
 	Private
 	_______________________________________________*/
 
-	_init() {
+	/**
+	 * Initalisation
+	 *
+	 * @private
+	 */
+	_initPlayer() {
 		this._bind();
+		this._loadManifest();
+	}
 
+
+	/**
+	 * Bind all bound methods here for clarity
+	 *
+	 * @private
+	 */
+	_bind() {
+		this._onTimeUpdate = ::this._onTimeUpdate;
+	}
+
+
+	/**
+	 * Called to load the manifest before we do anything else
+	 *
+	 * @private
+	 */
+	_loadManifest() {
+		// Remove filename from path to get root directory content
 		LoadManager.root = this._manifestURL.split("/").splice(0, this._manifestURL.match(/\//g).length).join("/") + "/";
 
-		this._videoController = new VideoController(this._videoElement);
-		this._videoController.on(VideoController.EVENT_TIME_UPDATE, this._onTimeUpdate);
-		this._sourceController = new SourceController(this._videoController);
-
-		// Get manifest and kickstart checking cached data
-		this._getManifest()
+		// Get the manifest file and then kickstart our checkVideoBuffer method
+		LoadManager.getManifest(this._manifestURL)
 			.then( manifest => {
 				this._manifest = manifest;
 
-				this.dispatchEvent(Player.EVENT_MANIFEST_LOADED, this._manifest);
-
-				BandwidthManager.calculatePing(manifest)
-					.then( ping => {
-						this._checkVideoBuffer();
-						console.log('PING = ' + ping);
-					});
-
-
-
-				//this._checkVideoBuffer();
-
-				// this._sourceController.initialise(manifest.getStream(5))
-				// 		.then(() => {
-				// 			this._createSelects(manifest);
-				// 		})
-				// 		.catch(this._onError);
-
+				this._onManifestReady();
 
 			})
 			.catch(this._onError);
 	}
 
 
-	// _createSelects(manifest) {
-	// 	for (let stream of manifest) {
-	// 		const select = document.createElement('select');
-	// 		select.id = 'stream-' + stream.index;
-	// 		document.body.appendChild(select);
+	/**
+	 * Called when manifest is ready and we can proceed with instantiation
+	 *
+	 * @private
+	 */
+	_onManifestReady() {
+		// Create VideoController that will listen to the video element
+		this._videoController = new VideoController(this._videoElement);
+		this._videoController.manifest = this._manifest;
+		this._videoController.on(VideoController.EVENT_TIME_UPDATE, this._onTimeUpdate);
 
-	// 		const option = document.createElement('option');
-	// 		option.value = '';
-	// 		option.innerHTML = 'Select Fragment';
-	// 		select.appendChild(option);
+		// Create SourceController that controls the MediaSource
+		this._sourceController = new SourceController(this._videoController);
 
-	// 		select.addEventListener('change', (event) => {
-	// 			const index = parseInt(select.value);
+		this.dispatchEvent(Player.EVENT_MANIFEST_LOADED, this._manifest);
 
-	// 			let fragment;
-	// 			if (index === -1) {
-	// 				fragment = stream.getFragmentInit();
-	// 			} else {
-	// 				fragment = stream.getFragment(index);
-	// 			}
-
-	// 			this._sourceController.appendToBuffer(fragment);
-	// 		});
-
-	// 		LoadManager.getData(stream.getFragmentInit())
-	// 				.then( fragment => {
-	// 					this._createOption(select, fragment, stream);
-	// 				}) // now data has loaded re check cached data 
-	// 				.catch(this._onError);
-	// 	}
-	// }
-
-
-	// _createOption(select, fragment, stream) {
-	// 	const option = document.createElement('option');
-	// 	option.value = fragment.index;
-	// 	option.innerHTML = fragment.url;
-	// 	select.appendChild(option);
-
-	// 	this._loadNext(select, fragment.index + 1, stream);
-	// }
-
-	// _loadNext(select, index, stream) {
-	// 	const fragment = stream.getFragment(index);
-	// 	if (fragment) {
-	// 		LoadManager.getData(fragment)
-	// 				.then( fragment => {
-	// 					this._createOption(select, fragment, stream);
-	// 				}) // now data has loaded re check cached data 
-	// 				.catch(this._onError);
-	// 	}
-		
-	// }
-
-
-
-	_bind() {
-		this._onTimeUpdate = ::this._onTimeUpdate;
+		// Initiate a process to calcualate the PING, once done we are good to go in initiating the checkVideoBuffer
+		BandwidthManager.calculatePing(this._manifest)
+			.then( ping => {
+				this._checkVideoBuffer();
+				console.log('PING = ' + ping);
+			});
 	}
 
 
-	_getManifest() {
-		// init stream model with manifest
-		return LoadManager.getManifest(this._manifestURL);
-	}
-
-
+	/**
+	 * Called to check on the state of the video buffer. Load another fragment data if we need to. 
+	 * Method is repeated called to check upon the state from video time updates and the callbacks
+	 * from async promises.
+	 *
+	 * @private
+	 */
 	_checkVideoBuffer() {
 		// check video element buffer
-		const {shouldGetData, bufferEmptyAtTime} = this._videoController.checkBuffer(this._manifest);
+		const {shouldGetData, bufferEmptyAtTime} = this._videoController.checkBuffer();
 
 		if (shouldGetData) {
 			this._checkCachedData(bufferEmptyAtTime);
-		}
+		} 
+
+		// else {
+			
+		// 	if (this._videoController.autoplay && this._videoController.paused) {
+		// 		console.log("OK AUTOPLAY GO GO GO");
+		// 		this._videoController.play();
+		// 	}
+		// }
+
 	}
 
 
+	/**
+	 * The checkCached data method is repeated called via checkVideoBuffer upon video time updates
+	 * and any update to the state in the controllers. This method drives all the initialisation and
+	 * loading of data for the video.
+	 *
+	 * The main logic for the checkCachedData method is as follows
+	 *
+	 *  // if find one 
+	 *		// check init fragment is there
+	 *			// if current stream index matches fragment index 
+	 *				// append cached buffer
+	 *			// else 
+	 *				// switch streams
+	 *		// load fragment init
+	 *			// if current stream index matches fragment index 
+	 *				// append cached buffer
+	 *			// else 
+	 *				// switch streams
+	 *	// else
+	 *		// check init fragment is there
+	 *			// load fragment
+	 *				// if current stream index matches fragment index 
+	 *					// append cached buffer
+	 *				// else 
+	 *					// switch streams
+	 *		// else
+	 *			// load fragment and init
+	 *				// if current stream index matches fragment index 
+	 *					// append cached buffer
+	 *				// else 
+	 *					// switch streams
+	 *
+	 *
+	 * @private
+	 * @param {Number} bufferEmptyAtTime
+	 */
 	_checkCachedData(bufferEmptyAtTime) {
+
+		console.log("READY STATE: " + this._videoElement.readyState);
 
 		const fragmentIndex = this._manifest.getFragmentIndex(bufferEmptyAtTime);
 
@@ -192,56 +230,61 @@ export default class Player extends EventEmitter {
 		if (fragment) {
 			stream = fragment.stream;
 
-			// do we have the init fragment for the stream
+			// Do we have the init fragment for the stream
 			if (stream.isInitialised) {
 
+				// The SourceControler is currently intialised once, this involves opening a MediaSource
+				// @TODO we need to check this is ok
 				if (this._sourceController.isInitialised === false) {
+
 					this._sourceController.initialise(stream)
 						.then(() => {
 							this._checkVideoBuffer()
 						})
 						.catch(this._onError);
-				} else if (this._sourceController.quality === fragment.stream.index) {
-					if (this._isUpdating === false) {
-						this._isUpdating = true;
 
-						this._sourceController.appendToBuffer(fragment)
-							.then(() => {
-								console.log('_checkCachedData COMPLETE');
-								this._isUpdating = false;
-								this._checkVideoBuffer()
-							})
-							.catch(this._onError);
-					}
+				// Does the current SourceController quality match incoming fragment stream quality,
+				// if so then we can add the fragment data to the buffer
+				} else if (this._sourceController.quality === fragment.stream.index) {
+
+					this._sourceController.appendToBuffer(fragment)
+						.then(() => {
+							console.log('_checkCachedData COMPLETE');
+
+							this._checkVideoBuffer()
+						})
+						.catch(this._onError);
+
+				// If the Fragment quality is different to that of the SourceController then we'll,
+				// switch streams first before appending the fragment data
 				} else {
 					console.log('APPEND DIFFERENT STREAM');
-					if (this._isUpdating === false) {
-						this._isUpdating = true;
 
-						Promise.resolve()
-							.then(() => this._sourceController.appendToBuffer(stream.getFragmentInit()))
-							.then(() => this._sourceController.appendToBuffer(fragment))
-							.then(() => {
-								console.log('_checkCachedData COMPLETE');
-								this._isUpdating = false;
-								this._checkVideoBuffer()
-							})
-							.catch(this._onError);
-					}
-					
+					Promise.resolve()
+						.then(() => this._sourceController.appendToBuffer(stream.getFragmentInit()))
+						.then(() => this._sourceController.appendToBuffer(fragment))
+						.then(() => {
+							console.log('_checkCachedData COMPLETE');
+
+							this._checkVideoBuffer()
+						})
+						.catch(this._onError);
 				}
+
+			// The SourceController is not initialised we need do this first, then re check
 			} else {
-				// load stream init
 				LoadManager.getData(stream.getFragmentInit())
 					.then( fragment => this._checkVideoBuffer()) // now data has loaded re check cached data 
 					.catch(this._onError);
 			}
+
+		// No Fragment data, we need to download before continuing
 		} else {
 
-			// there maybe no cached fragment but there may one one loading
+			// There maybe no cached fragment but there may one one loading
 			const loadingFragment = this._manifest.getLoadingFragment(fragmentIndex);
 
-			// check for loading fragment
+			// Check that the fragment is not loading
 			if (loadingFragment == null) {
 				const streamIndex = BandwidthManager.getQuality(this._manifest);
 
@@ -259,39 +302,19 @@ export default class Player extends EventEmitter {
 						.then( fragments => this._checkVideoBuffer()) // now data has loaded re check cached data 
 						.catch(this._onError);
 				} else {
-					throw Error('Stream is not empty')
+					throw new Error('Stream is not empty')
 				}
 			}
 		}
-
-		// if find one 
-			// check init fragment is there
-				// if current stream index matches fragment index 
-					// append cached buffer
-				// else 
-					// switch streams
-			// load fragment init
-				// if current stream index matches fragment index 
-					// append cached buffer
-				// else 
-					// switch streams
-		// else
-			// check init fragment is there
-				// load fragment
-					// if current stream index matches fragment index 
-						// append cached buffer
-					// else 
-						// switch streams
-			// else
-				// load fragment and init
-					// if current stream index matches fragment index 
-						// append cached buffer
-					// else 
-						// switch streams
-
 	}
 
 
+	/**
+	 * Event handler called from VideoController when the video time updates. Here we 
+	 * want to check the buffer.
+	 * 
+	 * @private
+	 */
 	_onTimeUpdate() {
 		this._checkVideoBuffer();
 
@@ -299,5 +322,11 @@ export default class Player extends EventEmitter {
 	}
 
 
+	/**
+	 * Generic Error handling method
+	 * 
+	 * @private
+	 * @param {Error} errorObject
+	 */
 	_onError(errorObject) { throw errorObject }
 } 

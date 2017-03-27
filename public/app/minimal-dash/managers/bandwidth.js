@@ -1,3 +1,9 @@
+/**
+ * Bandwidth manager is used to calculate the bandwidth, its advised when a transfer
+ * starts and stops and how much data is transfered. Bandwidth manager then retains 
+ * the data and provides asumptions on bandwdth.
+ */
+
 import LoadManager from './load';
 import {removeSpikes} from '../../util/stats';
 
@@ -72,6 +78,11 @@ class BandwidthManager {
 	}
 
 
+	/**
+	 * Called when a transfered is initiated
+	 * 
+	 * @param {Object} Fragment Model
+	 */
 	_start(fragment) {
 		const identifier = fragment.url;
 		const {bandwidth, range} = this._getBandwidth();
@@ -86,6 +97,12 @@ class BandwidthManager {
 	}
 
 
+	/**
+	 * Called when a transfered has completed
+	 * 
+	 * @param {Object} Fragment Model
+	 * @param {ArrayBuffer} bytes the data
+	 */
 	_stop(fragment, bytes) {
 		const identifier = fragment.url;
 
@@ -102,20 +119,14 @@ class BandwidthManager {
 			}
 		}
 
+		console.log(`fragment ${fragment.url} load time: ${historyData.time} bps: ${historyData.bandwidth / 1024}`);
+
 		fragment.loadData = historyData;
 	}
 
 
 	_findIndetifier(identifier) {
-		let decriment = this._history.length;
-		let data = null;
-		while(decriment--) {
-			if (this._history[decriment].identifier === identifier) {
-				return this._history[decriment];
-			}
-		}
-
-		return data;
+		return this._history.find(data => data.identifier === identifier);
 	}
 
 
@@ -201,6 +212,14 @@ class BandwidthManager {
 	}
 
 
+	/**
+	 * In order to caluclate ping we load all the init fragments generally small (1kb) resulting
+	 * in reponse time being the ping. Init fragments are then already loaded.
+	 * Calculate Ping is called initially by Player to get all init fragments and also of
+	 * course calculate ping to aid future bandwidth calculations.
+	 *
+	 * @param {Object} Manifest Data Model
+	 */
 	_calculatePing(manifest) {
 		return new Promise((resolve, reject) => {
 			let decriment = manifest.numberOfStreams;

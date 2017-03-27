@@ -25,7 +25,8 @@ export default class Source extends EventEmitter {
 
 		this._videoController = videoController;
 
-		this._init();
+
+		this._initSource();
 	}
 
 
@@ -57,7 +58,7 @@ export default class Source extends EventEmitter {
 	Private
 	_______________________________________________*/
 
-	_init() {
+	_initSource() {
 		this._bind();
 
 		this._mediaSource = new MediaSource();
@@ -69,25 +70,30 @@ export default class Source extends EventEmitter {
 		this._onInitialised = ::this._onInitialised;
 		this._onError = ::this._onError;
 		this._endStream = ::this._endStream;
-		// this._getInitData = ::this._getInitData;
-		// this._onReceiveFragment = ::this._onReceiveFragment;
-		// this._onUpdateEnd = ::this._onUpdateEnd;
 	}
 
 
 	/**
+	 * Initialises the opening of the media source and once done calls Initialised
+	 *
+	 * @private
+	 * @param {Object} stream The stream data model object
 	 * @returns Promise
 	 */
 	_initialise(stream) {
-
 		return this._initialiseMediaSource(stream, this._videoController, this._mediaSource)
 			.then(this._onInitialised)
 			.catch(this._onError);
-
 	}
 
 
 	/**
+	 * Init method that opens our MediaSource within a promise and resolves when open, initiated from Player.
+	 *
+	 * @private
+	 * @param {Object} stream The stream data model object
+	 * @param {VideoController} videoController the video element controller, api to the HTML video element
+	 * @param {MediaSource} mediaSource our MediaSource
 	 * @returns Promise
 	 */
 	_initialiseMediaSource(stream, videoController, mediaSource) {
@@ -96,7 +102,7 @@ export default class Source extends EventEmitter {
 				reject(new Error('Media type is not supported:', stream.bufferType));
 			}
 
-			// This caused an error on my macbook
+			// This caused an error on my macbook, omitting for now
 			// videoController.src = null;
 
 			mediaSource.addEventListener('sourceopen', onSourceOpen);
@@ -119,7 +125,6 @@ export default class Source extends EventEmitter {
 
 
 	_onInitialised({mediaSource, sourceBuffer, stream}) {
-
 		console.log('mediaSource readyState: ' + mediaSource.readyState);
 
 		mediaSource.duration = stream.duration;
@@ -135,40 +140,44 @@ export default class Source extends EventEmitter {
 
 
 	_appendToBuffer(fragment) {
-		// if (this._isUpdaing === false) {
-
-		// 	this._isUpdaing = true;
-
 		return new Promise((resolve, reject) => {
-			console.log('_appendToBuffer arrayBuffer length: ' + fragment.size + ' ' + fragment.url);
 
-			const sourceBuffer = this._sourceBuffer;
+			if (this._isUpdating === false) {
+				this._isUpdating = true;
 
-			this._quality = fragment.streamIndex;
+				console.log('_appendToBuffer arrayBuffer length: ' + fragment.size + ' ' + fragment.url);
 
-			sourceBuffer.appendBuffer(fragment.bytes);
+				const sourceBuffer = this._sourceBuffer;
+				const self = this;
 
-			// if (this._videoElement.paused) {
-			// 	this._videoElement.play(); // Start playing if paused
-			// }
+				this._quality = fragment.streamIndex;
 
-			if (fragment.isLast) {
-				this._sourceBuffer.addEventListener('updateend', this._endStream);
-			}
+				sourceBuffer.appendBuffer(fragment.bytes);
 
-			sourceBuffer.addEventListener('updateend', onUpdateEnd);
+				// if (this._videoElement.paused) {
+				// 	this._videoElement.play(); // Start playing if paused
+				// }
 
-			function onUpdateEnd() {
-				console.log('_appendToBuffer onUpdateEnd');
-				sourceBuffer.removeEventListener('updateend', onUpdateEnd);
+				if (fragment.isLast) {
+					this._sourceBuffer.addEventListener('updateend', this._endStream);
+				}
 
-				// this._isUpdaing = false;
+				sourceBuffer.addEventListener('updateend', onUpdateEnd);
 
-				resolve();
+				function onUpdateEnd() {
+					console.log('_appendToBuffer onUpdateEnd');
+					sourceBuffer.removeEventListener('updateend', onUpdateEnd);
+
+					self._isUpdating = false;
+
+					resolve();
+				}
+
+			} else {
+				reject(new Error("Will not appendBuffer, SourceBuffer is still being updated, try later"));
 			}
 
 		});
-		// }
 	}
 
 
