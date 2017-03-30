@@ -37,13 +37,25 @@ class Main {
 			bufferOutput.draw();
 		});
 
-		document.querySelector('.minimal-dash__play-pause').addEventListener('click', function() {
-			if (player.paused) {
-				player.play();
-			} else {
-				player.pause();
-			}
+		const button = document.querySelector('.minimal-dash__play-pause');
+
+		button.addEventListener('click', (event) => {
+			const button = event.currentTarget;
+
+			this._updatePlayButton(button, player);
 		});
+	}
+
+
+	_updatePlayButton(button, player) {
+		if (player.paused) {
+
+			player.play();
+			button.classList.remove('minimal-dash__play-pause--paused');
+		} else {
+			player.pause();
+			button.classList.add('minimal-dash__play-pause--paused');
+		}
 	}
 }
 

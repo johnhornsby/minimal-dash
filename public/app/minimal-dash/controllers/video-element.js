@@ -249,6 +249,8 @@ export default class VideoElement extends EventEmitter {
 			}
 			break;
 		case 'progress':
+			// @TODO we can get progress of data being appended after the pause has been set but the user, we need to check here
+			// if we are meant to be playing or not.
 			// this should autoplay when no ended and have 
 			const {shouldGetData} = this._checkBuffer(); 
 
