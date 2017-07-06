@@ -87,9 +87,43 @@ class LoadManager extends EventEmitter {
 	 * @private
 	 */
 	_initLoadManager() {
-	 	this._manifests = new Map();
+		this._manifests = new Map();
 		// worker script used to load images, here plucked from the dom
-		this._workerScript = document.querySelector('#image-loader-worker').textContent;
+		// this._workerScript = document.querySelector('#image-loader-worker').textContent;
+
+		this._workerScript = `self.addEventListener('message', function(e) {
+			onload = function () {
+
+				switch(e.data.type) {
+				case 'arraybuffer':
+					self.postMessage(xhr.response, [xhr.response]);
+					break;
+				case 'text':
+					self.postMessage(xhr.response);
+					break;
+				}
+
+				self.close();
+				console.log(this + ' load ' + e.data.url);
+			};
+
+			onabort = function() {
+				console.error(this + ' abort ' + e.data.url);
+			}
+
+			onerror = function() {
+				console.error(this + ' error ' + e.data.url);
+			}
+
+			var xhr = new XMLHttpRequest();
+			xhr.responseType = e.data.type;
+			xhr.onload = onload;
+			xhr.onerror = onerror;
+			xhr.onabort = onabort;
+			xhr.open('GET', e.data.url, true);
+			xhr.send();
+
+		}, false);`
 	}
 
 
@@ -104,15 +138,20 @@ class LoadManager extends EventEmitter {
 	 */
 	_getManifest(manifestURL) {
 		if (this._manifests.has(manifestURL) === false) {
-			
-			return FetchXHR2.fetch(manifestURL, 'text')
-				.then( data => {
-					const manifest = new Manifest(manifestURL, data);
+
+			return new Promise((resolve, reject) => {
+				const blob = new Blob([this._workerScript]);
+				const worker = new Worker(window.URL.createObjectURL(blob));
+
+				worker.addEventListener('message', (event) => {
+					const manifest = new Manifest(manifestURL, event.data);
 					this._manifests.set(manifestURL, manifest);
 
-					return manifest;
-				})
-				.catch(this._onError);
+					resolve(manifest);
+				}, false);
+				worker.addEventListener('error', this._onError, false);
+				worker.postMessage({url: manifestURL, type: 'text'});
+			});
 
 		} else {
 			return Promise.resolve(this._manifests.get(manifestURL));
@@ -133,35 +172,54 @@ class LoadManager extends EventEmitter {
 
 		fragment.isLoading();
 		BandwidthManager.start(fragment);
-		
-		return FetchXHR2.fetch(url, 'arraybuffer')
-			.then(function(arraybuffer) {
+
+		return new Promise((resolve, reject) => {
+
+			// WORKER
+			// const blob = new Blob([this._workerScript]);
+			// const worker = new Worker(window.URL.createObjectURL(blob));
+
+			// worker.addEventListener('message', (event) => {
+			// 	console.log('worker message received ' + url);
+
+			// 	const arraybuffer = new Uint8Array(event.data);
+			// 	BandwidthManager.stop(fragment, arraybuffer.length);
+			// 	fragment.bytes = arraybuffer;
+
+			// 	resolve(fragment);
+			// }, false);
+			// worker.addEventListener('error', this._onError, false);
+			// worker.postMessage({url: url, type: 'arraybuffer'});
+
+
+			// NON WORKER
+			onload = function () {
+				const arraybuffer = new Uint8Array(xhr.response);
 				BandwidthManager.stop(fragment, arraybuffer.length);
 				fragment.bytes = arraybuffer;
-				return fragment;
-			})
-			.catch(this._onError);
+
+				resolve(fragment);
+
+
+				console.log(this + ' load ' + url);
+			};
+
+			var xhr = new XMLHttpRequest();
+			xhr.responseType = 'arraybuffer';
+			xhr.onload = onload;
+			xhr.open('GET', url, true);
+			xhr.send();
+
+
+		});
 	}
 
 
-	// /**
- //    * Spawns a worker to actually load the image
- //    */
- //   _loadImage(url) {
- //      const blob = new Blob([this._workerScript]);
- //      const worker = new Worker(window.URL.createObjectURL(blob));
-
- //      worker.addEventListener('message', this._onImageLoad, false);
- //      worker.addEventListener('error', this._onImageError, false);
- //      worker.postMessage({url: url});
- //   }
-
-
- 	/**
- 	 * Generic Error handler for the promises
- 	 *
- 	 * @prviate
- 	 */
+	/**
+	 * Generic Error handler for the promises
+	 *
+	 * @prviate
+	 */
 	_onError(errorObject) {
 		throw errorObject
 	}

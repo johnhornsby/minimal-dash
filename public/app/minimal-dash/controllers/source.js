@@ -19,6 +19,8 @@ export default class Source extends EventEmitter {
 
 	_isUpdating = false;
 
+	_currentFragmentIndex = null;
+
 
 	constructor(videoController) {
 		super();
@@ -151,6 +153,7 @@ export default class Source extends EventEmitter {
 				const self = this;
 
 				this._quality = fragment.streamIndex;
+				this._currentFragmentIndex = fragment.index;
 
 				sourceBuffer.appendBuffer(fragment.bytes);
 
@@ -174,7 +177,7 @@ export default class Source extends EventEmitter {
 				}
 
 			} else {
-				reject(new Error("Will not appendBuffer, SourceBuffer is still being updated, try later"));
+				reject(new Error(`Will not appendBuffer with fragment index ${fragment.index}, SourceBuffer is still being updated with fragment index ${this._currentFragmentIndex}, try later`));
 			}
 
 		});

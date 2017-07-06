@@ -11,6 +11,8 @@ import EventEmitter from 'wolfy87-eventemitter';
 // Minimum fragment lengths that the we aim to keep full before loading another
 const BUFFER_MIN_LENGTH = 2;
 
+const RANGE_START_END_TOLERANCE = 0.05; // Safari and Firefox buffer ranges seem to be out by 0.03, use a tollerance for now, investingate further
+
 
 export default class VideoElement extends EventEmitter {
 
@@ -241,7 +243,7 @@ export default class VideoElement extends EventEmitter {
 	 * @param {Event} event browser video event
 	 */
 	_onVideoEvent(event) {
-		console.log("VIDEO EVENT: " + event.type);
+		console.log("VIDEO EVENT: " + event.type + " " + this._videoElement.currentTime);
 		switch(event.type) {
 		case 'ended':
 			if (this._loop) {
@@ -276,29 +278,33 @@ export default class VideoElement extends EventEmitter {
 		const currentTime = this._videoElement.currentTime;
 		const bufferMinLength = (this._videoElement.preload === "auto") ? this._manifest.duration: BUFFER_MIN_LENGTH;
 
-		let index = this._videoElement.buffered.length;
+		let bufferIndex = this._videoElement.buffered.length;
 		const fragmentDuration = (this._manifest.fragmentDuration / 1000);
 
 		let bufferEmptyAtTime = null;
 		const ranges = [];
 
-		if (index === 0 && bufferMinLength > 0) {
+		if (this._videoElement.buffered.length === 0 && bufferMinLength > 0) {
 			shouldGetData = true;
 			bufferEmptyAtTime = 0;
 		}
 
-		while(index--) {
+		while(bufferIndex--) {
 			ranges.push({
-				start: this._videoElement.buffered.start(index),
-				end: this._videoElement.buffered.end(index),
-				index: index
+				start: this._videoElement.buffered.start(bufferIndex),
+				end: this._videoElement.buffered.end(bufferIndex),
+				index: bufferIndex
 			});
 		}
 
 		// find the end of the currently playing buffer
 		ranges.forEach(range => {
+
+			const equalOrGreaterThanStart = (currentTime >= (range.start - RANGE_START_END_TOLERANCE)) || (currentTime >= (range.start + RANGE_START_END_TOLERANCE));
+			const equalOrLessThanEnd = (currentTime <= (range.end - RANGE_START_END_TOLERANCE)) || (currentTime >= (range.end + RANGE_START_END_TOLERANCE));
+
 			// find the range that the currentTime is within
-			if (currentTime >= range.start && currentTime <= range.end) {
+			if (equalOrGreaterThanStart && equalOrLessThanEnd) {
 
 				// calculate the time at when the next fragment is needed in the buffer
 				bufferEmptyAtTime = Math.round(range.end / fragmentDuration) * fragmentDuration;

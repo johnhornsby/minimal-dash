@@ -128,6 +128,14 @@ export default class Player extends EventEmitter {
 	 * @private
 	 */
 	_initPlayer() {
+		document.addEventListener('visibilitychange', () => {
+
+			console.log('Document is now ' + ((document.hidden)? 'hidden': 'visible')  );
+		})
+
+
+
+
 		this._bind();
 		this._loadManifest();
 	}
@@ -200,6 +208,8 @@ export default class Player extends EventEmitter {
 		// check video element buffer
 		const {shouldGetData, bufferEmptyAtTime} = this._videoController.checkBuffer();
 
+		console.log('_checkVideoBuffer ' + 'shouldGetData:' + shouldGetData + ' bufferEmptyAtTime:' +bufferEmptyAtTime );
+
 		if (shouldGetData) {
 			this._checkCachedData(bufferEmptyAtTime);
 		} 
@@ -244,25 +254,31 @@ export default class Player extends EventEmitter {
 	 */
 	_checkCachedData(bufferEmptyAtTime) {
 
-		console.log("READY STATE: " + this._videoElement.readyState);
+		const state = {};
+		state.readyState = this._videoElement.readyState;
 
 		const fragmentIndex = this._manifest.getFragmentIndex(bufferEmptyAtTime);
+		state.fragmentIndex = fragmentIndex;
 
 		// check through all streams to find any cached fragment
 		let fragment = this._manifest.getCachedFragment(fragmentIndex);
 		let stream;
 
+
 		// is there a fragment in the cache
 		if (fragment) {
+			state.fragment = fragment.constructor;
 			stream = fragment.stream;
-
+			state.stream = stream.constructor;
 			// Do we have the init fragment for the stream
 			if (stream.isInitialised) {
+
+				state.streamIsInitialised = stream.isInitialised;
 
 				// The SourceControler is currently intialised once, this involves opening a MediaSource
 				// @TODO we need to check this is ok
 				if (this._sourceController.isInitialised === false) {
-
+					state.sourceIsInitialised = this._sourceController.isInitialised;
 					this._sourceController.initialise(stream)
 						.then(() => {
 							this._checkVideoBuffer()
@@ -272,7 +288,8 @@ export default class Player extends EventEmitter {
 				// Does the current SourceController quality match incoming fragment stream quality,
 				// if so then we can add the fragment data to the buffer
 				} else if (this._sourceController.quality === fragment.stream.index) {
-
+					state.quality = fragment.stream.index;
+					state.switchStreams = false;
 					this._sourceController.appendToBuffer(fragment)
 						.then(() => {
 							console.log('_checkCachedData COMPLETE');
@@ -284,8 +301,8 @@ export default class Player extends EventEmitter {
 				// If the Fragment quality is different to that of the SourceController then we'll,
 				// switch streams first before appending the fragment data
 				} else {
-					console.log('APPEND DIFFERENT STREAM');
-
+					//console.log('APPEND DIFFERENT STREAM');
+					state.switchStreams = true;
 					Promise.resolve()
 						.then(() => this._sourceController.appendToBuffer(stream.getFragmentInit()))
 						.then(() => this._sourceController.appendToBuffer(fragment))
@@ -299,6 +316,7 @@ export default class Player extends EventEmitter {
 
 			// The SourceController is not initialised we need do this first, then re check
 			} else {
+				state.streamIsInitialised = stream.isInitialised;
 				LoadManager.getData(stream.getFragmentInit())
 					.then( fragment => this._checkVideoBuffer()) // now data has loaded re check cached data 
 					.catch(this._onError);
@@ -310,6 +328,8 @@ export default class Player extends EventEmitter {
 			// There maybe no cached fragment but there may one one loading
 			const loadingFragment = this._manifest.getLoadingFragment(fragmentIndex);
 
+			state.loadingFragment = (loadingFragment)? true: false;
+
 			// Check that the fragment is not loading
 			if (loadingFragment == null) {
 				const streamIndex = BandwidthManager.getQuality(this._manifest);
@@ -317,6 +337,8 @@ export default class Player extends EventEmitter {
 				stream = this._manifest.getStream(streamIndex);
 				fragment = stream.getFragment(fragmentIndex);
 
+
+				state.fragmentStatus = fragment.status;
 				if (fragment.status === Fragment.status.EMPTY) {
 					const getDataPromises = [LoadManager.getData(fragment)];
 
@@ -329,9 +351,11 @@ export default class Player extends EventEmitter {
 						.catch(this._onError);
 				} else {
 					throw new Error('Stream is not empty')
-				}
+				}	
 			}
 		}
+
+		console.log("_checkCachedData " + JSON.stringify(state));
 	}
 
 

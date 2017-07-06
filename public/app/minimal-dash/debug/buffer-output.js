@@ -321,9 +321,12 @@ export default class BufferOutput {
 		// });
 		maxBandwidth *= 1.1;
 		//maxBandwidth = 1000000;
-		// if (isFinite(maxBandwidth) === false) {
-		// 	debugger;
-		// }
+		if (isFinite(maxBandwidth) === false) {
+			debugger;
+		}
+		if (isNaN(maxBandwidth)) {
+			debugger;
+		}
 		// round to nearest 10
 		//maxBandwidth = Math.pow(10, String(Math.round(maxBandwidth)).length);
 		// maxBandwidth = 1000000;

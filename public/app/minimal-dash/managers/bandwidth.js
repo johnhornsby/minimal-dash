@@ -94,6 +94,7 @@ class BandwidthManager {
 			range: range,
 			estimatedBandwidth: bandwidth
 		})
+		console.log(`_start fragment ${fragment.url}`);
 	}
 
 
@@ -119,7 +120,7 @@ class BandwidthManager {
 			}
 		}
 
-		console.log(`fragment ${fragment.url} load time: ${historyData.time} bps: ${historyData.bandwidth / 1024}`);
+		console.log(`_stop fragment ${fragment.url} load time: ${historyData.time} bps: ${historyData.bandwidth / 1024}`);
 
 		fragment.loadData = historyData;
 	}
@@ -149,7 +150,7 @@ class BandwidthManager {
 			const now = new Date().getTime();
 
 			// use only media fragments
-			let bandwidths = this._history.filter(history => history.type === 'media');
+			let bandwidths = this._history.filter(history => history.type === 'media' && history.bandwidth !== null);
 
 			// only use history measurements within MEASURE_TIME_LIMIT
 			bandwidths = bandwidths.filter(history => history.start >= now - MEASURE_TIME_LIMIT);

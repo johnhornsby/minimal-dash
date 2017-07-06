@@ -158,6 +158,11 @@ export default class Manifest {
 
 		const cachedStream = this._streams.find((stream, streamIndex) => {
 			fragment = stream.getFragment(index);
+
+			if (!fragment) {
+				debugger;
+			}
+
 			return fragment.status === status;
 		});
 
