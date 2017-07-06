@@ -20,6 +20,23 @@
     		pointer-events: none;
 		}
 
+        .minimal-dash__play-pause.minimal-dash__play-pause--paused span:first-child {
+            display: inline;
+        }
+
+        .minimal-dash__play-pause.minimal-dash__play-pause--paused span:last-child {
+            display: none;
+        }
+
+        .minimal-dash__play-pause span:last-child {
+            display: inline;
+        }
+
+        .minimal-dash__play-pause span:first-child {
+            display: none;
+        }
+
+
 
 	</style>
 	<script id="image-loader-worker" type="javascript/worker">
@@ -52,7 +69,10 @@
 
 <canvas class="minimal-dash__buffer-output"></canvas>
 
-<button class="minimal-dash__play-pause">Play | Pause</button>
+<button class="minimal-dash__play-pause minimal-dash__play-pause--paused">
+    <span>Play</span>
+    <span>Pause</span>
+</button>
 
 <script type="text/javascript" src="dist/js/client.js"></script>
 </body>
