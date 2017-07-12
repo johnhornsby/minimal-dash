@@ -1,25 +1,32 @@
 # TODO
 
-- Loss of worker postMessage on loading fragment on chrome osX when you move to a new os space. When you switch back time has skipped and stalled. Hang on to adrift workers untill hidden = false
+## Add handling of timeout for loading Fragment
 
 
-- this error should be ok, this is where a init file is being appened to buffer and took 4 seconds and will not update with the next fragment
-- source.js:180 Uncaught (in promise) Error: Will not appendBuffer with fragment index -1, SourceBuffer is still being updated with fragment index 7, try later. -1 is the appending of the init fragment 
+## Loss of worker postMessage on loading fragment on chrome osX when you move to a new os space. When you switch back time has skipped and stalled. Hang on to adrift workers untill hidden = false
 
-- need to look again at bandwidth analysis and when fragments are cached.
 
-- const fragmentIndex = this._manifest.getFragmentIndex(bufferEmptyAtTime);
+## this error should be ok, this is where a init file is being appened to buffer and took 4 seconds and will not update with the next fragment
+ source.js:180 Uncaught (in promise) Error: Will not appendBuffer with fragment index -1, SourceBuffer is still being updated with fragment index 7, try later. -1 is the appending of the init fragment 
+
+
+## need to look again at bandwidth analysis and when fragments are cached.
+
+
+## const fragmentIndex = this._manifest.getFragmentIndex(bufferEmptyAtTime);
 is getting 51 as a fragment index, really I guess this should resolve to 0
 
-- no auto play on safari
 
-- play pause toggle does not work when media is loading
-
-- inifite loop for safari and firefox when attempting to assertain when buffer is empty at due to ranges been out, I've added a tolerance for now
+## FIXED No auto play on safari
 
 
+## Play pause toggle does not work when media is loading
 
 
+## FIXED Inifite loop for safari and firefox when attempting to assertain when buffer is empty at due to ranges been out, I've added a tolerance for now
+
+
+## FIXED Check Buffer Loop When Current Time Hits Loading
 - Bug, When currentTime gets too close and within negative tollerance of emptyAt it misscalculates the next fragment to load, and creates a loop.
 
 // Console Log before the Loop Begins
@@ -68,3 +75,5 @@ source.js:171 _appendToBuffer onUpdateEnd
 07:52:25.527 video-element.js:246 VIDEO EVENT: stalled 11.968432
 07:52:25.529 source.js:171 _appendToBuffer onUpdateEnd
 07:52:25.529 player.js:295 _checkCachedData COMPLETE
+
+

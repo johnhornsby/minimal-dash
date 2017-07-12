@@ -299,11 +299,11 @@ export default class VideoElement extends EventEmitter {
 			});
 		}
 
-		// find the end of the currently playing buffer
+		// Here we attempt to determin if the playhead is within a currently buffered range
 		ranges.forEach(range => {
 
-			const equalOrGreaterThanStart = (currentTime >= (range.start - RANGE_START_END_TOLERANCE)) || (currentTime >= (range.start + RANGE_START_END_TOLERANCE));
-			const equalOrLessThanEnd = (currentTime <= (range.end - RANGE_START_END_TOLERANCE)) || (currentTime >= (range.end + RANGE_START_END_TOLERANCE));
+			const equalOrGreaterThanStart = (currentTime >= (range.start - RANGE_START_END_TOLERANCE));
+			const equalOrLessThanEnd = (currentTime <= (range.end + RANGE_START_END_TOLERANCE));
 
 			// find the range that the currentTime is within
 			if (equalOrGreaterThanStart && equalOrLessThanEnd) {
@@ -321,7 +321,7 @@ export default class VideoElement extends EventEmitter {
 			}
 		});
 
-		// if there is no buffer surrounding currentTime, then set to currentTime
+		// If there is no buffer surrounding currentTime, then set to currentTime
 		if (bufferEmptyAtTime === null) {
 			bufferEmptyAtTime = currentTime;
 		}
