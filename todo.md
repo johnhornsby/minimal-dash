@@ -77,3 +77,19 @@ source.js:171 _appendToBuffer onUpdateEnd
 07:52:25.529 player.js:295 _checkCachedData COMPLETE
 
 
+
+## Again checking buffer near the end we fall foul of not adjusting for tollerance.
+
+On Safari
+end = 50.3333
+duration = 51
+
+On Chrome
+end = 49.9999
+duration = 51
+
+if (range.end > this._manifest.duration - fragmentDuration) {
+	shouldGetData = false;
+}
+
+
