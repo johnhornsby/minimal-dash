@@ -308,14 +308,26 @@ export default class VideoElement extends EventEmitter {
 			// find the range that the currentTime is within
 			if (equalOrGreaterThanStart && equalOrLessThanEnd) {
 
-				// calculate the time at when the next fragment is needed in the buffer
-				bufferEmptyAtTime = Math.round(range.end / fragmentDuration) * fragmentDuration;
+				// calculate the time at when the next fragment is needed in the buffer,
+				// typically this will be at the end of a fragment, and so we will use the tollerance range
+				// to snap this perfectly to the first ms of the next fragment. However we can't 
+				// gaurantee that the browser has not flushed the cache or only part of the fragment was 
+				// attached to the media source, in this case when outside of the tollerance we will
+				// simply take this value at face value to handle these unforseen circumstances.
+				const snappedRangeEnd = Math.round(range.end / fragmentDuration) * fragmentDuration;
+				if (range.end >= snappedRangeEnd - RANGE_START_END_TOLERANCE && range.end <= snappedRangeEnd + RANGE_START_END_TOLERANCE) {
+					bufferEmptyAtTime = snappedRangeEnd;
+				} else {
+					bufferEmptyAtTime = range.end;
+				}
 
+				// cancel getting more data if we have enough buffer infront of the playhead
 				if (currentTime <= bufferEmptyAtTime - bufferMinLength) {
 					shouldGetData = false;
 				}
 
-				if (range.end > this._manifest.duration - fragmentDuration) {
+				// cancel only if buffer is within the last fragment
+				if (bufferEmptyAtTime > this._manifest.duration - fragmentDuration) {
 					shouldGetData = false;
 				}
 			}
