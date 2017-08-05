@@ -33,7 +33,10 @@ export default class VideoElement extends EventEmitter {
 	_hasPlayed = false;
 
 	// {Object} the manifest data model saved for internal use
-	_manifest = null; 
+	_manifest = null;
+
+	// flag to indentiy explicity user pausing via this classes public api
+	_userPaused = false;
 
 
 
@@ -73,6 +76,7 @@ export default class VideoElement extends EventEmitter {
 	 * @public
 	 */
 	play() {
+		this._userPaused = false;
 		this._videoElement.play();
 	}
 
@@ -83,6 +87,7 @@ export default class VideoElement extends EventEmitter {
 	 * @public
 	 */
 	pause() {
+		this._userPaused = true;
 		this._videoElement.pause();
 	}
 
@@ -251,18 +256,32 @@ export default class VideoElement extends EventEmitter {
 			}
 			break;
 		case 'progress':
-			// @TODO we can get progress of data being appended after the pause has been set but the user, we need to check here
-			// if we are meant to be playing or not.
-			// this should autoplay when no ended and have 
-			const {shouldGetData} = this._checkBuffer(); 
-
-			if (this._autoplay && this._videoElement.paused && this._videoElement.ended === false && shouldGetData === false) {
-				this._videoElement.play();
-			}
+			this._checkToAutoPlay();
 			break;
 		case 'timeupdate':
 			this.emit(VideoElement.EVENT_TIME_UPDATE);
 			break;		
+		}
+	}
+
+
+	/**
+	 * @TODO this currently does not work when user plays and pauses via the video controls
+	 * 
+	 * Method called on progress event to check if conditions are right to auto play the video element. Conditions are,
+	 * 1: AutoPlay is on video element is set
+	 * 2: The VideoElement is current not playing
+	 * 3: The user as not explicity paused player
+	 * 4: The VideoElement has not ended
+	 * 5: We have enough data in the buffer
+	 * 
+	 * @private
+	 */
+	_checkToAutoPlay() {
+		const {shouldGetData} = this._checkBuffer(); 
+
+		if (this._autoplay && this._videoElement.paused && !this._userPaused && this._videoElement.ended === false && shouldGetData === false) {
+			this._videoElement.play();
 		}
 	}
 

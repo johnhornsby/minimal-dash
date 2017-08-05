@@ -25,6 +25,9 @@ class LoadManager extends EventEmitter {
 	// {String} the root url from which to compose all Fragemnt relative links
 	_root = "";
 
+	// unique reference to workers
+	_workersSet = new Set();
+
 
 
 
@@ -91,38 +94,73 @@ class LoadManager extends EventEmitter {
 		// worker script used to load images, here plucked from the dom
 		// this._workerScript = document.querySelector('#image-loader-worker').textContent;
 
-		this._workerScript = `self.addEventListener('message', function(e) {
-			onload = function () {
+		this._workerScript = `
 
-				switch(e.data.type) {
-				case 'arraybuffer':
-					self.postMessage(xhr.response, [xhr.response]);
-					break;
-				case 'text':
-					self.postMessage(xhr.response);
-					break;
-				}
+		self.xhr = null;
+		self.url = '';
+		self.type = '';
+		self.timeoutId = null;
 
-				self.close();
-				console.log(this + ' load ' + e.data.url);
-			};
+		self.onLoad = function() {
+			console.log(self + ' worker.onLoad ' + self.url);
+			self.initNotificationBeacon();
+		}
 
-			onabort = function() {
-				console.error(this + ' abort ' + e.data.url);
+		self.onabort = function() {
+			console.error(self + ' abort ' + self.url);
+		}
+
+		self.onerror = function() {
+			console.error(self + ' error ' + self.url);
+		}
+
+		self.initNotificationBeacon = function() {
+			self.clearNotificationBeacon();
+			self.postMessage('loaded');
+
+			self.timeoutId = self.setTimeout(self.initNotificationBeacon, 1000);
+		}
+
+		self.clearNotificationBeacon = function() {
+			self.clearTimeout(self.timeoutId);
+		}
+
+		self.initLoad = function(url, type) {
+			self.url = url;
+			self.type = type;
+			self.xhr = new XMLHttpRequest();
+			self.xhr.onload = self.onLoad;
+			self.xhr.onerror = self.onerror;
+			self.xhr.onabort = self.onabort;
+			self.xhr.open('GET', url, true);
+			self.xhr.responseType = type; // IE11 must be asigned after open 
+			self.xhr.send();
+		}
+
+		self.retrieveResponse = function() {
+			self.clearNotificationBeacon();
+
+			switch(self.type) {
+			case 'arraybuffer':
+				self.postMessage(self.xhr.response, [self.xhr.response]);
+				break;
+			case 'text':
+				self.postMessage(self.xhr.response);
+				break;
 			}
 
-			onerror = function() {
-				console.error(this + ' error ' + e.data.url);
+			self.close();
+			console.log(self + ' worker.retrieveResponse ' + self.url);
+		}
+
+		self.addEventListener('message', function(event) {
+			if (event.data.action && event.data.action === 'retrieve') {
+				self.retrieveResponse();
 			}
 
-			var xhr = new XMLHttpRequest();
-			xhr.responseType = e.data.type;
-			xhr.onload = onload;
-			xhr.onerror = onerror;
-			xhr.onabort = onabort;
-			xhr.open('GET', e.data.url, true);
-			xhr.send();
-
+			if (event.data.url && event.data.url !== '') {
+				self.initLoad(event.data.url, event.data.type);
+			}
 		}, false);`
 	}
 
@@ -143,11 +181,24 @@ class LoadManager extends EventEmitter {
 				const blob = new Blob([this._workerScript]);
 				const worker = new Worker(window.URL.createObjectURL(blob));
 
-				worker.addEventListener('message', (event) => {
-					const manifest = new Manifest(manifestURL, event.data);
-					this._manifests.set(manifestURL, manifest);
+				this._workersSet.add(worker);
 
-					resolve(manifest);
+				worker.addEventListener('message', (event) => {
+
+					if (event.data === 'loaded') {
+						worker.postMessage({action: 'retrieve'});
+					} else {
+						const manifest = new Manifest(manifestURL, event.data);
+						this._manifests.set(manifestURL, manifest);
+
+						if (this._workersSet.has(worker)) {
+							this._workersSet.delete(worker);
+						} else {
+							reject("Can't delete worker");
+						}
+
+						resolve(manifest);
+					}
 				}, false);
 				worker.addEventListener('error', this._onError, false);
 				worker.postMessage({url: manifestURL, type: 'text'});
@@ -176,39 +227,53 @@ class LoadManager extends EventEmitter {
 		return new Promise((resolve, reject) => {
 
 			// WORKER
-			// const blob = new Blob([this._workerScript]);
-			// const worker = new Worker(window.URL.createObjectURL(blob));
+			const blob = new Blob([this._workerScript]);
+			const worker = new Worker(window.URL.createObjectURL(blob));
 
-			// worker.addEventListener('message', (event) => {
-			// 	console.log('worker message received ' + url);
+			this._workersSet.add(worker);
 
-			// 	const arraybuffer = new Uint8Array(event.data);
+			worker.addEventListener('message', (event) => {
+				console.log('worker message received ' + url);
+
+				if (event.data === 'loaded') {
+					worker.postMessage({action: 'retrieve'});
+				} else {
+					const arraybuffer = new Uint8Array(event.data);
+					BandwidthManager.stop(fragment, arraybuffer.length);
+					fragment.bytes = arraybuffer;
+
+					if (this._workersSet.has(worker)) {
+						this._workersSet.delete(worker);
+					} else {
+						reject("Can't delete worker");
+					}
+
+					resolve(fragment);
+				}
+				
+				
+			}, false);
+			worker.addEventListener('error', this._onError, false);
+			worker.postMessage({url: url, type: 'arraybuffer'});
+
+
+			// NON WORKER
+			// onload = function () {
+			// 	const arraybuffer = new Uint8Array(xhr.response);
 			// 	BandwidthManager.stop(fragment, arraybuffer.length);
 			// 	fragment.bytes = arraybuffer;
 
 			// 	resolve(fragment);
-			// }, false);
-			// worker.addEventListener('error', this._onError, false);
-			// worker.postMessage({url: url, type: 'arraybuffer'});
 
 
-			// NON WORKER
-			onload = function () {
-				const arraybuffer = new Uint8Array(xhr.response);
-				BandwidthManager.stop(fragment, arraybuffer.length);
-				fragment.bytes = arraybuffer;
+			// 	console.log(this + ' load ' + url);
+			// };
 
-				resolve(fragment);
-
-
-				console.log(this + ' load ' + url);
-			};
-
-			var xhr = new XMLHttpRequest();
-			xhr.responseType = 'arraybuffer';
-			xhr.onload = onload;
-			xhr.open('GET', url, true);
-			xhr.send();
+			// var xhr = new XMLHttpRequest();
+			// xhr.responseType = 'arraybuffer';
+			// xhr.onload = onload;
+			// xhr.open('GET', url, true);
+			// xhr.send();
 
 
 		});
