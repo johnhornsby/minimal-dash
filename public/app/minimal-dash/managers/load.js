@@ -91,8 +91,7 @@ class LoadManager extends EventEmitter {
 	 */
 	_initLoadManager() {
 		this._manifests = new Map();
-		// worker script used to load images, here plucked from the dom
-		// this._workerScript = document.querySelector('#image-loader-worker').textContent;
+		// worker script used to load images
 
 		this._workerScript = `
 
@@ -122,6 +121,10 @@ class LoadManager extends EventEmitter {
 		}
 
 		self.clearNotificationBeacon = function() {
+			if (self.timeoutId > 1) {
+				var str = 'clearNotificationBeacon()' + self.url + ' ' + self.timeoutId
+				console.log(str);
+			}
 			self.clearTimeout(self.timeoutId);
 		}
 
@@ -184,18 +187,13 @@ class LoadManager extends EventEmitter {
 				this._workersSet.add(worker);
 
 				worker.addEventListener('message', (event) => {
-
 					if (event.data === 'loaded') {
 						worker.postMessage({action: 'retrieve'});
 					} else {
 						const manifest = new Manifest(manifestURL, event.data);
 						this._manifests.set(manifestURL, manifest);
 
-						if (this._workersSet.has(worker)) {
-							this._workersSet.delete(worker);
-						} else {
-							reject("Can't delete worker");
-						}
+						this._removeWorker(worker);
 
 						resolve(manifest);
 					}
@@ -242,16 +240,10 @@ class LoadManager extends EventEmitter {
 					BandwidthManager.stop(fragment, arraybuffer.length);
 					fragment.bytes = arraybuffer;
 
-					if (this._workersSet.has(worker)) {
-						this._workersSet.delete(worker);
-					} else {
-						reject("Can't delete worker");
-					}
+					this._removeWorker(worker);
 
 					resolve(fragment);
 				}
-				
-				
 			}, false);
 			worker.addEventListener('error', this._onError, false);
 			worker.postMessage({url: url, type: 'arraybuffer'});
@@ -274,9 +266,22 @@ class LoadManager extends EventEmitter {
 			// xhr.onload = onload;
 			// xhr.open('GET', url, true);
 			// xhr.send();
-
-
 		});
+	}
+
+
+	/**
+	 * Method tries to delete worker from worker Set
+	 *
+	 * @private
+	 * @param {Worker} worker
+	 */
+	_removeWorker(worker) {
+		if (this._workersSet.has(worker)) {
+			this._workersSet.delete(worker);
+		} else {
+			reject("Can't delete worker");
+		}
 	}
 
 
@@ -288,8 +293,6 @@ class LoadManager extends EventEmitter {
 	_onError(errorObject) {
 		throw errorObject
 	}
-
-
 }
 
 export default LoadManager.instance;

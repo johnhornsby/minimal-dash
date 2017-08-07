@@ -131,14 +131,14 @@ class BandwidthManager {
 	}
 
 
-	_getDefaultBandwidth() {
+	_getDefaultBandwidth(initialBandwidth = INITIAL_BANDWIDTH) {
 		return {
-			bandwidth: INITIAL_BANDWIDTH,
+			bandwidth: initialBandwidth,
 			range: {
-				start: INITIAL_BANDWIDTH,
-				end: INITIAL_BANDWIDTH,
-				set: [INITIAL_BANDWIDTH],
-				all: [INITIAL_BANDWIDTH]
+				start: initialBandwidth,
+				end: initialBandwidth,
+				set: [initialBandwidth],
+				all: [initialBandwidth]
 			}
 		}
 	}
@@ -165,6 +165,9 @@ class BandwidthManager {
 				// choose an appropriate bandwidth from the clipped array
 				const bandwidth = this._selectBandwidth(clippedBandwidth);
 
+				// set bandwidth into localStorage
+				window.localStorage.bandwidth = parseInt(bandwidth);
+
 				return {
 					bandwidth:bandwidth,
 					range: {
@@ -176,8 +179,12 @@ class BandwidthManager {
 				}
 			}
 		}
-		
-		return this._getDefaultBandwidth();
+
+		if (window.localStorage.bandwidth) {
+			return this._getDefaultBandwidth(window.localStorage.bandwidth);
+		} else {
+			return this._getDefaultBandwidth();
+		}
 	}
 
 

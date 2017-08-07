@@ -10,6 +10,11 @@ import EventEmitter from '../util/event-emitter';
 import Fragment from './models/fragment';
 
 
+const DEFAULT_OPTIONS = {
+	initialStreamIndex: undefined
+}
+
+
 export default class Player extends EventEmitter {
 
 
@@ -33,14 +38,19 @@ export default class Player extends EventEmitter {
 	// current stream index
 	_streamIndex = null;
 
+	// player options
+	_options = {}
 
 
-	constructor(videoElement, manifestURL) {
+
+	constructor(videoElement, manifestURL, options) {
 		super();
 
 		this._videoElement = videoElement;
 
 		this._manifestURL = manifestURL;
+
+		this._options = options || DEFAULT_OPTIONS;
 
 
 		this._initPlayer();
@@ -332,11 +342,15 @@ export default class Player extends EventEmitter {
 
 			// Check that the fragment is not loading
 			if (loadingFragment == null) {
-				const streamIndex = BandwidthManager.getQuality(this._manifest);
+				let streamIndex = BandwidthManager.getQuality(this._manifest);
+
+				// override quality of initial stream it set
+				if (fragmentIndex === 0 && this._options.initialStreamIndex !== undefined) {
+					streamIndex = this._options.initialStreamIndex;
+				}
 
 				stream = this._manifest.getStream(streamIndex);
 				fragment = stream.getFragment(fragmentIndex);
-
 
 				state.fragmentStatus = fragment.status;
 				if (fragment.status === Fragment.status.EMPTY) {
