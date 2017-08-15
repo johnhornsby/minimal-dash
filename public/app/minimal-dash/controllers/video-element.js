@@ -251,9 +251,19 @@ export default class VideoElement extends EventEmitter {
 		console.log("VIDEO EVENT: " + event.type + " " + this._videoElement.currentTime);
 		switch(event.type) {
 		case 'ended':
+			// reset _userPaused 
+			this._userPaused = false;
+
 			if (this._loop) {
 				this._videoElement.play();
 			}
+			break;
+		case 'play':
+			this._userPaused = false;
+			break;
+		case 'pause':
+			// pause is only dispatched when user presses pause, api is told to pause or video has ended
+			this._userPaused = true;
 			break;
 		case 'progress':
 			this._checkToAutoPlay();
@@ -281,7 +291,9 @@ export default class VideoElement extends EventEmitter {
 		const {shouldGetData} = this._checkBuffer(); 
 
 		if (this._autoplay && this._videoElement.paused && !this._userPaused && this._videoElement.ended === false && shouldGetData === false) {
+			
 			this._videoElement.play();
+
 		}
 	}
 

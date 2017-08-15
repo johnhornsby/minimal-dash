@@ -25,7 +25,7 @@ class Main {
 		const url = "https://s3-eu-west-1.amazonaws.com/johnhornsby.me/projects/verusmodus/preview/streams/stream.mpd";
 
 		const player = new Player(videoElement, url, {
-			initialStreamIndex: 0
+			initialStreamIndex: 3
 		});
 
 		// bufferOutput is simply used to debug at the moment

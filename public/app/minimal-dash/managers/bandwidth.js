@@ -14,6 +14,8 @@ const INITIAL_BANDWIDTH = 500000; // 0.5 mb / s
 
 const CLIP_TOLERANCE = 0.95; // value between 0 and 1
 
+const CACHED_THRESHHOLD = 32; // ms loading within threshold to determine a cached fragment. 
+
 
 let singleton = Symbol();
 let singletonEnforcer = Symbol();
@@ -33,8 +35,6 @@ class BandwidthManager {
 
 
 	_history = null;
-
-	_ping = null;
 
 
 
@@ -58,10 +58,6 @@ class BandwidthManager {
 	stop(identifier, bytes) { this._stop(identifier, bytes) }
 
 	getQuality(manifest) { return this._getQuality(manifest) }
-
-	get ping() { return this._ping }
-
-	calculatePing(manifest) { return this._calculatePing(manifest) }
 
 
 
@@ -111,8 +107,13 @@ class BandwidthManager {
 		if (historyData) {
 			historyData.end = new Date().getTime();
 			historyData.bytes = bytes;
-			historyData.time = Math.max((historyData.end - historyData.start) - this._ping, 0);
-			historyData.ping = this._ping;
+			historyData.time = Math.max(historyData.end - historyData.start, 0);
+
+			// if time falls within threshold zero time as cached, this will then be ignored by bandwidth analysis
+			if (historyData.time <= CACHED_THRESHHOLD) {
+				historyData.time = 0;
+			}
+
 			historyData.bandwidth = (1000 / historyData.time) * bytes * 8; // in bits / second
 
 			if (isFinite(historyData.bandwidth) === false) {
@@ -120,7 +121,7 @@ class BandwidthManager {
 			}
 		}
 
-		console.log(`_stop fragment ${fragment.url} load time: ${historyData.time} bps: ${historyData.bandwidth / 1024}`);
+		console.log(`_stop fragment ${fragment.url} load time: ${historyData.time} mbps: ${historyData.bandwidth / 1024 / 1024}`);
 
 		fragment.loadData = historyData;
 	}
@@ -195,12 +196,6 @@ class BandwidthManager {
 	}
 
 
-	_selectPing(pings) {
-		// use the min value, this helps minimise null bandwidth calculations
-		return pings[0];
-	}
-
-
 	_getQuality(manifest) {
 		const {bandwidth, range} = this._getBandwidth();
 		let increment = 0;
@@ -218,48 +213,6 @@ class BandwidthManager {
 
 		return streamIndex;
 	}
-
-
-	/**
-	 * In order to caluclate ping we load all the init fragments generally small (1kb) resulting
-	 * in reponse time being the ping. Init fragments are then already loaded.
-	 * Calculate Ping is called initially by Player to get all init fragments and also of
-	 * course calculate ping to aid future bandwidth calculations.
-	 *
-	 * @param {Object} Manifest Data Model
-	 */
-	_calculatePing(manifest) {
-		return new Promise((resolve, reject) => {
-			let decriment = manifest.numberOfStreams;
-
-			const initFragments = [];
-
-			const loadInitFragment = () =>  {
-				const fragment = manifest.getStream(decriment - 1).getFragmentInit();
-
-				initFragments.push(fragment);
-
-				LoadManager.getData(fragment)
-					.then(() => {
-						if (decriment -= 1 > 0) {
-							loadInitFragment();
-						} else {
-
-							const times = initFragments.map(fragment => fragment.loadData.time);
-							const clippedTimes = removeSpikes(times);
-
-							this._ping = this._selectPing(clippedTimes);
-
-							resolve(this._ping);
-						}
-					})
-					.catch( error => { throw error });
-			}
-
-			loadInitFragment();
-		});
-	}
-
 }
 
 export default BandwidthManager.instance;

@@ -2,18 +2,55 @@
 
 ## Add handling of timeout for loading Fragment
 
+_checkVideoBuffer shouldGetData:true bufferEmptyAtTime:47
+20:04:25.071 bandwidth.js:97 _start fragment video/7/seg-48.m4f
+20:04:25.072 player.js:372 _checkCachedData {"readyState":4,"fragmentIndex":47,"loadingFragment":false,"fragmentStatus":"empty"}
+20:04:25.234 video-element.js:251 VIDEO EVENT: timeupdate 45.733233
+20:04:25.234 player.js:221 _checkVideoBuffer shouldGetData:true bufferEmptyAtTime:47
+20:04:25.234 player.js:372 _checkCachedData {"readyState":4,"fragmentIndex":47,"loadingFragment":true}
+20:04:25.332 video-element.js:251 VIDEO EVENT: progress 45.831202
+20:04:25.484 video-element.js:251 VIDEO EVENT: timeupdate 45.983307
+20:04:25.484 player.js:221 _checkVideoBuffer shouldGetData:true bufferEmptyAtTime:47
+20:04:25.484 player.js:372 _checkCachedData {"readyState":4,"fragmentIndex":47,"loadingFragment":true}
+20:04:25.734 video-element.js:251 VIDEO EVENT: timeupdate 46.233627
+20:04:25.734 player.js:221 _checkVideoBuffer shouldGetData:true bufferEmptyAtTime:47
+20:04:25.735 player.js:372 _checkCachedData {"readyState":4,"fragmentIndex":47,"loadingFragment":true}
+20:04:25.984 video-element.js:251 VIDEO EVENT: timeupdate 46.483797
+20:04:25.985 player.js:221 _checkVideoBuffer shouldGetData:true bufferEmptyAtTime:47
+20:04:25.985 player.js:372 _checkCachedData {"readyState":4,"fragmentIndex":47,"loadingFragment":true}
+20:04:26.234 video-element.js:251 VIDEO EVENT: timeupdate 46.733867
+20:04:26.235 player.js:221 _checkVideoBuffer shouldGetData:true bufferEmptyAtTime:47
+20:04:26.235 player.js:372 _checkCachedData {"readyState":4,"fragmentIndex":47,"loadingFragment":true}
+20:04:26.464 video-element.js:251 VIDEO EVENT: timeupdate 46.963399
+20:04:26.465 player.js:221 _checkVideoBuffer shouldGetData:true bufferEmptyAtTime:47
+20:04:26.465 player.js:372 _checkCachedData {"readyState":2,"fragmentIndex":47,"loadingFragment":true}
+20:04:26.468 video-element.js:251 VIDEO EVENT: waiting 46.963399
+20:04:28.483 video-element.js:251 VIDEO EVENT: stalled 46.963399
+20:04:52.003 78d5ce71-4fc9-41d1-bc69-e0972db96d3f:9 [object DedicatedWorkerGlobalScope] worker.onLoad https://s3-eu-west-1.amazonaws.com/johnhornsby.me/projects/verusmodus/preview/streams/video/7/seg-48.m4f
+20:04:52.005 load.js:234 worker message received https://s3-eu-west-1.amazonaws.com/johnhornsby.me/projects/verusmodus/preview/streams/video/7/seg-48.m4f
+20:04:52.005 78d5ce71-4fc9-41d1-bc69-e0972db96d3f:61 [object DedicatedWorkerGlobalScope] worker.retrieveResponse https://s3-eu-west-1.amazonaws.com/johnhornsby.me/projects/verusmodus/preview/streams/video/7/seg-48.m4f
+20:04:52.005 load.js:234 worker message received https://s3-eu-west-1.amazonaws.com/johnhornsby.me/projects/verusmodus/preview/streams/video/7/seg-48.m4f
+20:04:52.006 bandwidth.js:123 _stop fragment video/7/seg-48.m4f load time: 26819 bps: 12.644079290801297
+20:04:52.006 player.js:221 _checkVideoBuffer shouldGetData:true bufferEmptyAtTime:47
+20:04:52.006 player.js:372 _checkCachedData {"readyState":2,"fragmentIndex":47,"streamIsInitialised":true,"switchStreams":true}
+20:04:52.007 source.js:150 _appendToBuffer arrayBuffer length: 688 video/7/init.mp4
+20:04:52.007 source.js:171 _appendToBuffer onUpdateEnd
+20:04:52.007 source.js:150 _appendToBuffer arrayBuffer length: 43405 video/7/seg-48.m4f
+20:04:52.009 source.js:171 _appendToBuffer onUpdateEnd
+20:04:52.009 player.js:320 _checkCachedData COMPLETE
 
-## Loss of worker postMessage on loading fragment on chrome osX when you move to a new os space. When you switch back time has skipped and stalled. Hang on to adrift workers untill hidden = false
+
+## FIXED Loss of worker postMessage on loading fragment on chrome osX when you move to a new os space. When you switch back time has skipped and stalled. Hang on to adrift workers untill hidden = false
 
 
-## this error should be ok, this is where a init file is being appened to buffer and took 4 seconds and will not update with the next fragment
+## FIXED this error should be ok, this is where a init file is being appened to buffer and took 4 seconds and will not update with the next fragment
  source.js:180 Uncaught (in promise) Error: Will not appendBuffer with fragment index -1, SourceBuffer is still being updated with fragment index 7, try later. -1 is the appending of the init fragment 
 
 
 ## need to look again at bandwidth analysis and when fragments are cached.
 
 
-## const fragmentIndex = this._manifest.getFragmentIndex(bufferEmptyAtTime);
+## FIXED const fragmentIndex = this._manifest.getFragmentIndex(bufferEmptyAtTime);
 is getting 51 as a fragment index, really I guess this should resolve to 0
 
 

@@ -175,10 +175,10 @@ export default class Source extends EventEmitter {
 
 					resolve();
 				}
-
-			} else {
-				reject(new Error(`Will not appendBuffer with fragment index ${fragment.index}, SourceBuffer is still being updated with fragment index ${this._currentFragmentIndex}, try later`));
 			}
+			// } else {
+			// 	reject(new Error(`Will not appendBuffer with fragment index ${fragment.index}, SourceBuffer is still being updated with fragment index ${this._currentFragmentIndex}, try later`));
+			// }
 
 		});
 	}

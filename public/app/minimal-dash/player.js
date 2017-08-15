@@ -196,14 +196,11 @@ export default class Player extends EventEmitter {
 		// Create SourceController that controls the MediaSource
 		this._sourceController = new SourceController(this._videoController);
 
+		// For public use
 		this.dispatchEvent(Player.EVENT_MANIFEST_LOADED, this._manifest);
 
-		// Initiate a process to calcualate the PING, once done we are good to go in initiating the checkVideoBuffer
-		BandwidthManager.calculatePing(this._manifest)
-			.then( ping => {
-				this._checkVideoBuffer();
-				console.log('PING = ' + ping);
-			});
+		// Begin
+		this._checkVideoBuffer();
 	}
 
 
