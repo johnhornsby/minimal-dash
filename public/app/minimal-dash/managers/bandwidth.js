@@ -55,7 +55,7 @@ class BandwidthManager {
 
 	start(identifier) { this._start(identifier) }
 
-	stop(identifier, bytes) { this._stop(identifier, bytes) }
+	stop(identifier, bytes, isCached) { this._stop(identifier, bytes, isCached) }
 
 	getQuality(manifest) { return this._getQuality(manifest) }
 
@@ -100,7 +100,7 @@ class BandwidthManager {
 	 * @param {Object} Fragment Model
 	 * @param {ArrayBuffer} bytes the data
 	 */
-	_stop(fragment, bytes) {
+	_stop(fragment, bytes, isCached = false) {
 		const identifier = fragment.url;
 
 		const historyData = this._findIndetifier(identifier);
@@ -109,8 +109,7 @@ class BandwidthManager {
 			historyData.bytes = bytes;
 			historyData.time = Math.max(historyData.end - historyData.start, 0);
 
-			// if time falls within threshold zero time as cached, this will then be ignored by bandwidth analysis
-			if (historyData.time <= CACHED_THRESHHOLD) {
+			if (isCached) {
 				historyData.time = 0;
 			}
 

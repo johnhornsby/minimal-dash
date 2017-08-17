@@ -99,9 +99,17 @@ class LoadManager extends EventEmitter {
 		self.url = '';
 		self.type = '';
 		self.timeoutId = null;
+		self.requestDate = null;
+		self.isCached = false;
 
-		self.onLoad = function() {
-			console.log(self + ' worker.onLoad ' + self.url);
+		self.onLoad = function(event) {
+			var dateString = xhr.getResponseHeader('Date');
+			if (dateString != null) {
+				var repsonseDate = new Date(dateString);
+				self.isCached = repsonseDate.getTime() < self.requestDate.getTime();
+			}
+
+			console.log(self + ' worker.onLoad ' + self.url + ' cached:' + self.isCached);
 			self.initNotificationBeacon();
 		}
 
@@ -115,7 +123,7 @@ class LoadManager extends EventEmitter {
 
 		self.initNotificationBeacon = function() {
 			self.clearNotificationBeacon();
-			self.postMessage('loaded');
+			self.postMessage({'message':'loaded','isCached':self.isCached});
 
 			self.timeoutId = self.setTimeout(self.initNotificationBeacon, 1000);
 		}
@@ -129,6 +137,7 @@ class LoadManager extends EventEmitter {
 		}
 
 		self.initLoad = function(url, type) {
+			self.requestDate = new Date();
 			self.url = url;
 			self.type = type;
 			self.xhr = new XMLHttpRequest();
@@ -187,7 +196,7 @@ class LoadManager extends EventEmitter {
 				this._workersSet.add(worker);
 
 				worker.addEventListener('message', (event) => {
-					if (event.data === 'loaded') {
+					if (event.data.constructor === Object && event.data.message === 'loaded') {
 						worker.postMessage({action: 'retrieve'});
 					} else {
 						const manifest = new Manifest(manifestURL, event.data);
@@ -227,17 +236,19 @@ class LoadManager extends EventEmitter {
 			// WORKER
 			const blob = new Blob([this._workerScript]);
 			const worker = new Worker(window.URL.createObjectURL(blob));
+			let isCached = false;
 
 			this._workersSet.add(worker);
 
 			worker.addEventListener('message', (event) => {
 				console.log('worker message received ' + url);
 
-				if (event.data === 'loaded') {
+				if (event.data.constructor === Object && event.data.message === 'loaded') {
+					isCached = event.data.isCached;
 					worker.postMessage({action: 'retrieve'});
 				} else {
 					const arraybuffer = new Uint8Array(event.data);
-					BandwidthManager.stop(fragment, arraybuffer.length);
+					BandwidthManager.stop(fragment, arraybuffer.length, isCached);
 					fragment.bytes = arraybuffer;
 
 					this._removeWorker(worker);
