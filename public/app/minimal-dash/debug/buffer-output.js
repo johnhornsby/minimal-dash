@@ -440,7 +440,12 @@ export default class BufferOutput {
 				ctx.fillStyle = "#FF0000";
 				break;
 			case 'loaded':
-				ctx.fillStyle = "rgba(255, 255, 255, 1)";
+				if (fragment.loadData.isCached) {
+					ctx.fillStyle = "rgba(128, 128, 128, 1)";
+				} else {
+					ctx.fillStyle = "rgba(255, 255, 255, 1)";
+				}
+				
 				break;
 		}
 		ctx.fillRect(col, row, colWidth, rowHeight);

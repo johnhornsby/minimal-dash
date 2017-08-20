@@ -11,16 +11,19 @@ import Fragment from './models/fragment';
 
 
 const DEFAULT_OPTIONS = {
-	initialStreamIndex: undefined
+	initialStreamIndex: undefined, 
+	debug: false
 }
 
 
-export default class Player extends EventEmitter {
+class Player extends EventEmitter {
 
 
 	static EVENT_TIME_UPDATE = 'eventTimeUpdate';
 
 	static EVENT_MANIFEST_LOADED = 'eventManifestLoaded';
+
+	static MAX_LOAD_ATTEMPTS = 3;
 
 
 	// controller of the video element
@@ -139,14 +142,15 @@ export default class Player extends EventEmitter {
 	 */
 	_initPlayer() {
 		document.addEventListener('visibilitychange', () => {
+			if (this._options.debug) console.log('Document is now ' + ((document.hidden)? 'hidden': 'visible')  );
 
-			console.log('Document is now ' + ((document.hidden)? 'hidden': 'visible')  );
+			if (!document.hidden) {
+				this._onDocumentShow();
+			}
 		})
 
-
-
-
 		this._bind();
+
 		this._loadManifest();
 	}
 
@@ -158,6 +162,7 @@ export default class Player extends EventEmitter {
 	 */
 	_bind() {
 		this._onTimeUpdate = ::this._onTimeUpdate;
+		this._onDocumentShow = ::this._onDocumentShow;
 	}
 
 
@@ -189,12 +194,12 @@ export default class Player extends EventEmitter {
 	 */
 	_onManifestReady() {
 		// Create VideoController that will listen to the video element
-		this._videoController = new VideoController(this._videoElement);
+		this._videoController = new VideoController(this._videoElement, this._options.debug);
 		this._videoController.manifest = this._manifest;
 		this._videoController.on(VideoController.EVENT_TIME_UPDATE, this._onTimeUpdate);
 
 		// Create SourceController that controls the MediaSource
-		this._sourceController = new SourceController(this._videoController);
+		this._sourceController = new SourceController(this._videoController, this._options.debug);
 
 		// For public use
 		this.dispatchEvent(Player.EVENT_MANIFEST_LOADED, this._manifest);
@@ -215,7 +220,7 @@ export default class Player extends EventEmitter {
 		// check video element buffer
 		const {shouldGetData, bufferEmptyAtTime} = this._videoController.checkBuffer();
 
-		console.log('_checkVideoBuffer ' + 'shouldGetData:' + shouldGetData + ' bufferEmptyAtTime:' +bufferEmptyAtTime );
+		if (this._options.debug) console.log('_checkVideoBuffer ' + 'shouldGetData:' + shouldGetData + ' bufferEmptyAtTime:' +bufferEmptyAtTime );
 
 		if (shouldGetData) {
 			this._checkCachedData(bufferEmptyAtTime);
@@ -299,7 +304,7 @@ export default class Player extends EventEmitter {
 					state.switchStreams = false;
 					this._sourceController.appendToBuffer(fragment)
 						.then(() => {
-							console.log('_checkCachedData COMPLETE');
+							if (this._options.debug) console.log('_checkCachedData COMPLETE');
 
 							this._checkVideoBuffer()
 						})
@@ -314,7 +319,7 @@ export default class Player extends EventEmitter {
 						.then(() => this._sourceController.appendToBuffer(stream.getFragmentInit()))
 						.then(() => this._sourceController.appendToBuffer(fragment))
 						.then(() => {
-							console.log('_checkCachedData COMPLETE');
+							if (this._options.debug) console.log('_checkCachedData COMPLETE');
 
 							this._checkVideoBuffer()
 						})
@@ -349,24 +354,28 @@ export default class Player extends EventEmitter {
 				stream = this._manifest.getStream(streamIndex);
 				fragment = stream.getFragment(fragmentIndex);
 
-				state.fragmentStatus = fragment.status;
-				if (fragment.status === Fragment.status.EMPTY) {
-					const getDataPromises = [LoadManager.getData(fragment)];
-
-					if (stream.isInitialised === false) {
-						getDataPromises.push(LoadManager.getData(stream.getFragmentInit()));
-					}
-
-					Promise.all(getDataPromises)
-						.then( fragments => this._checkVideoBuffer()) // now data has loaded re check cached data 
-						.catch(this._onError);
+				if (fragment.loadAttempts > Player.MAX_LOAD_ATTEMPTS) {
+					throw new Error('Unable to load Fragment ' + fragment.url);
 				} else {
-					throw new Error('Stream is not empty')
-				}	
+					state.fragmentStatus = fragment.status;
+					if (fragment.status === Fragment.status.EMPTY) {
+						const getDataPromises = [LoadManager.getData(fragment)];
+
+						if (stream.isInitialised === false) {
+							getDataPromises.push(LoadManager.getData(stream.getFragmentInit()));
+						}
+
+						Promise.all(getDataPromises)
+							.then( fragments => this._checkVideoBuffer()) // now data has loaded re check cached data 
+							.catch(this._onError);
+					} else {
+						throw new Error('Stream is not empty')
+					}	
+				}
 			}
 		}
 
-		console.log("_checkCachedData " + JSON.stringify(state));
+		if (this._options.debug) console.log("_checkCachedData " + JSON.stringify(state));
 	}
 
 
@@ -383,6 +392,13 @@ export default class Player extends EventEmitter {
 	}
 
 
+	_onDocumentShow() {
+		if (this._manifest !== null) {
+			this._checkVideoBuffer();
+		}
+	}
+
+
 	/**
 	 * Generic Error handling method
 	 * 
@@ -391,3 +407,6 @@ export default class Player extends EventEmitter {
 	 */
 	_onError(errorObject) { throw errorObject }
 } 
+
+
+export default Player;

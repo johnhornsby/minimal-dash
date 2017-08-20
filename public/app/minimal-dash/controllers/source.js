@@ -21,12 +21,14 @@ export default class Source extends EventEmitter {
 
 	_currentFragmentIndex = null;
 
+	_debug = false
 
-	constructor(videoController) {
+
+	constructor(videoController, debug = false) {
 		super();
 
 		this._videoController = videoController;
-
+		this._debug = debug;
 
 		this._initSource();
 	}
@@ -127,7 +129,7 @@ export default class Source extends EventEmitter {
 
 
 	_onInitialised({mediaSource, sourceBuffer, stream}) {
-		console.log('mediaSource readyState: ' + mediaSource.readyState);
+		if (this._debug) console.log('mediaSource readyState: ' + mediaSource.readyState);
 
 		mediaSource.duration = stream.duration;
 
@@ -147,7 +149,7 @@ export default class Source extends EventEmitter {
 			if (this._isUpdating === false) {
 				this._isUpdating = true;
 
-				console.log('_appendToBuffer arrayBuffer length: ' + fragment.size + ' ' + fragment.url);
+				if (this._debug) console.log('_appendToBuffer arrayBuffer length: ' + fragment.size + ' ' + fragment.url);
 
 				const sourceBuffer = this._sourceBuffer;
 				const self = this;
@@ -168,7 +170,7 @@ export default class Source extends EventEmitter {
 				sourceBuffer.addEventListener('updateend', onUpdateEnd);
 
 				function onUpdateEnd() {
-					console.log('_appendToBuffer onUpdateEnd');
+					if (this._debug) console.log('_appendToBuffer onUpdateEnd');
 					sourceBuffer.removeEventListener('updateend', onUpdateEnd);
 
 					self._isUpdating = false;
@@ -197,7 +199,7 @@ export default class Source extends EventEmitter {
 		}
 
 		this._mediaSource.endOfStream();
-		console.log('Source endOfStream()');
+		if (this._debug) console.log('Source endOfStream()');
 		this._sourceBuffer.removeEventListener('updateend', this._endStream);
 	}
 

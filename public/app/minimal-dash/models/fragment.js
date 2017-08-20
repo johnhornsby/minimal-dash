@@ -30,6 +30,8 @@ export default class Fragment {
 
 	_loadData = null;
 
+	_loadAttempts = 0;
+
 
 	constructor(index, url, streamIndex, stream, isLast = false) {
 		this._index = index;
@@ -111,11 +113,21 @@ export default class Fragment {
 		return this._loadData;
 	}
 
-	isLoading() {
-		if (this._status !== Fragment.status.EMPTY) {
-			throw Error('Fragment is not empty :' + this._url);
+	get loadAttempts() {
+		return this._loadAttempts;
+	}
+
+	isLoading(isLoading = true) {
+		if (isLoading) {
+			if (this._status !== Fragment.status.EMPTY) {
+				throw Error('Fragment is not empty :' + this._url);
+			}
+			this._status = Fragment.status.LOADING;
+
+			this._loadAttempts++;
+		} else {
+			this._status = Fragment.status.EMPTY;
 		}
-		this._status = Fragment.status.LOADING;
 	}
 
 

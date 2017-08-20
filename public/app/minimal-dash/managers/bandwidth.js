@@ -8,7 +8,7 @@ import LoadManager from './load';
 import {removeSpikes} from '../../util/stats';
 
 
-const MEASURE_TIME_LIMIT = 5000; // ms
+const MEASURE_VALID_READINGS = 10; // bandwidth readings
 
 const INITIAL_BANDWIDTH = 500000; // 0.5 mb / s
 
@@ -36,6 +36,8 @@ class BandwidthManager {
 
 	_history = null;
 
+	_debug = false;
+
 
 
 
@@ -53,11 +55,15 @@ class BandwidthManager {
 	Public
 	_____________________________________________*/
 
-	start(identifier) { this._start(identifier) }
+	start(fragment) { this._start(fragment) }
 
-	stop(identifier, bytes, isCached) { this._stop(identifier, bytes, isCached) }
+	stop(fragment, bytes, isCached) { this._stop(fragment, bytes, isCached) }
+
+	stopOnError(fragment) { this._stopOnError(fragment) }
 
 	getQuality(manifest) { return this._getQuality(manifest) }
+
+	set debug(debug) { this._debug = debug }
 
 
 
@@ -90,7 +96,8 @@ class BandwidthManager {
 			range: range,
 			estimatedBandwidth: bandwidth
 		})
-		console.log(`_start fragment ${fragment.url}`);
+
+		if (this._debug) console.log(`_start fragment ${fragment.url}`);
 	}
 
 
@@ -108,6 +115,7 @@ class BandwidthManager {
 			historyData.end = new Date().getTime();
 			historyData.bytes = bytes;
 			historyData.time = Math.max(historyData.end - historyData.start, 0);
+			historyData.isCached = isCached;
 
 			if (isCached) {
 				historyData.time = 0;
@@ -120,9 +128,18 @@ class BandwidthManager {
 			}
 		}
 
-		console.log(`_stop fragment ${fragment.url} load time: ${historyData.time} mbps: ${historyData.bandwidth / 1024 / 1024}`);
+		if (this._debug) console.log(`_stop fragment ${fragment.url} load time: ${historyData.time} mbps: ${historyData.bandwidth / 1024 / 1024}`);
 
 		fragment.loadData = historyData;
+	}
+
+
+	_stopOnError(fragment) {
+		const index = this._history.findIndex(data => data.identifier === fragment.url);
+
+		if (index) {
+			this._history = this._history.splice(index, 1);
+		}
 	}
 
 
@@ -152,8 +169,17 @@ class BandwidthManager {
 			// use only media fragments
 			let bandwidths = this._history.filter(history => history.type === 'media' && history.bandwidth !== null);
 
-			// only use history measurements within MEASURE_TIME_LIMIT
-			bandwidths = bandwidths.filter(history => history.start >= now - MEASURE_TIME_LIMIT);
+			// only use history measurements within MEASURE_VALID_READINGS, that are not cached and witin MEASURE_VALID_READINGS
+			let slots = 10;
+			bandwidths = bandwidths.reduceRight((filteredBandwidths, nextBandwidth) => {
+				if (nextBandwidth.isCached !== true && slots > 0) {
+					filteredBandwidths.unshift(nextBandwidth);
+
+					slots--;
+				} 
+
+				return filteredBandwidths;
+			}, []);
 			
 			if (bandwidths.length > 0) {
 
@@ -166,7 +192,9 @@ class BandwidthManager {
 				const bandwidth = this._selectBandwidth(clippedBandwidth);
 
 				// set bandwidth into localStorage
-				window.localStorage.bandwidth = parseInt(bandwidth);
+				if (!isNaN(bandwidth) && isFinite(bandwidth)) {
+					window.localStorage.bandwidth = parseInt(bandwidth);
+				}
 
 				return {
 					bandwidth:bandwidth,

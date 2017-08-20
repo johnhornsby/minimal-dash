@@ -40,6 +40,39 @@ _checkVideoBuffer shouldGetData:true bufferEmptyAtTime:47
 20:04:52.009 player.js:320 _checkCachedData COMPLETE
 
 
+## Cache timeout and fail to load 
+player.js:302 _checkCachedData COMPLETE
+08:28:42.566 player.js:218 _checkVideoBuffer shouldGetData:false bufferEmptyAtTime:36
+08:28:42.740 video-element.js:251 VIDEO EVENT: timeupdate 33.500745
+08:28:42.740 player.js:218 _checkVideoBuffer shouldGetData:false bufferEmptyAtTime:36
+08:28:42.840 video-element.js:251 VIDEO EVENT: progress 33.600664
+08:28:42.990 video-element.js:251 VIDEO EVENT: timeupdate 33.750934
+08:28:42.991 player.js:218 _checkVideoBuffer shouldGetData:false bufferEmptyAtTime:36
+08:28:43.241 video-element.js:251 VIDEO EVENT: timeupdate 34.001117
+08:28:43.241 player.js:218 _checkVideoBuffer shouldGetData:true bufferEmptyAtTime:36
+08:28:43.241 bandwidth.js:93 _start fragment video/7/seg-37.m4f
+08:28:43.243 player.js:369 _checkCachedData {"readyState":4,"fragmentIndex":36,"loadingFragment":false,"fragmentStatus":"empty"}
+08:28:43.740 video-element.js:251 VIDEO EVENT: timeupdate 34.500687
+08:28:43.741 player.js:218 _checkVideoBuffer shouldGetData:true bufferEmptyAtTime:36
+08:28:43.741 player.js:369 _checkCachedData {"readyState":4,"fragmentIndex":36,"loadingFragment":true}
+08:28:44.240 video-element.js:251 VIDEO EVENT: timeupdate 35.000137
+08:28:44.240 player.js:218 _checkVideoBuffer shouldGetData:true bufferEmptyAtTime:36
+08:28:44.240 player.js:369 _checkCachedData {"readyState":4,"fragmentIndex":36,"loadingFragment":true}
+08:28:44.490 video-element.js:251 VIDEO EVENT: timeupdate 35.250884
+08:28:44.491 player.js:218 _checkVideoBuffer shouldGetData:true bufferEmptyAtTime:36
+08:28:44.491 player.js:369 _checkCachedData {"readyState":4,"fragmentIndex":36,"loadingFragment":true}
+08:28:44.991 video-element.js:251 VIDEO EVENT: timeupdate 35.75197
+08:28:44.992 player.js:218 _checkVideoBuffer shouldGetData:true bufferEmptyAtTime:36
+08:28:44.992 player.js:369 _checkCachedData {"readyState":4,"fragmentIndex":36,"loadingFragment":true}
+08:28:45.206 video-element.js:251 VIDEO EVENT: timeupdate 35.966535
+08:28:45.206 player.js:218 _checkVideoBuffer shouldGetData:true bufferEmptyAtTime:36
+08:28:45.207 player.js:369 _checkCachedData {"readyState":2,"fragmentIndex":36,"loadingFragment":true}
+08:28:45.209 video-element.js:251 VIDEO EVENT: waiting 35.966535
+08:28:45.992 video-element.js:251 VIDEO EVENT: stalled 35.966535
+08:29:24.053 s3-eu-west-1.amazonaws.com/johnhornsby.me/projects/verusmodus/preview/streams/video/7/seg-37.m4f:1 GET https://s3-eu-west-1.amazonaws.com/johnhornsby.me/projects/verusmodus/preview/streams/video/7/seg-37.m4f net::ERR_TIMED_OUT
+
+
+
 ## FIXED Loss of worker postMessage on loading fragment on chrome osX when you move to a new os space. When you switch back time has skipped and stalled. Hang on to adrift workers untill hidden = false
 
 
@@ -57,7 +90,7 @@ is getting 51 as a fragment index, really I guess this should resolve to 0
 ## FIXED No auto play on safari
 
 
-## Play pause toggle does not work when media is loading
+## FIXED Play pause toggle does not work when media is loading
 
 
 ## FIXED Inifite loop for safari and firefox when attempting to assertain when buffer is empty at due to ranges been out, I've added a tolerance for now

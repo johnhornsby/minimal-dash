@@ -38,12 +38,15 @@ export default class VideoElement extends EventEmitter {
 	// flag to indentiy explicity user pausing via this classes public api
 	_userPaused = false;
 
+	_debug = false
 
 
-	constructor(videoElement) {
+
+	constructor(videoElement, debug = false) {
 		super();
 
 		this._videoElement = videoElement;
+		this._debug = debug;
 
 
 		this._initVideoElement();
@@ -248,7 +251,7 @@ export default class VideoElement extends EventEmitter {
 	 * @param {Event} event browser video event
 	 */
 	_onVideoEvent(event) {
-		console.log("VIDEO EVENT: " + event.type + " " + this._videoElement.currentTime);
+		if (this._debug) console.log("VIDEO EVENT: " + event.type + " " + this._videoElement.currentTime);
 		switch(event.type) {
 		case 'ended':
 			// reset _userPaused 

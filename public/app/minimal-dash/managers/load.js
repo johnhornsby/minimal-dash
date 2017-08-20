@@ -19,6 +19,14 @@ class LoadManager extends EventEmitter {
 		return this[singleton];
 	}
 
+	static STATUS_LOADED = 'loaded';
+	static STATUS_ERROR = 'error';
+	static STATUS_TIMEOUT = 'timeout';
+	static STATUS_ABORT = 'abort';
+
+	static XHR_TIMEOUT = 10000;
+
+
 	// {Map} record of all loaded Manifest data models
 	_manifests = null;
 
@@ -27,6 +35,8 @@ class LoadManager extends EventEmitter {
 
 	// unique reference to workers
 	_workersSet = new Set();
+
+	_debug = false;
 
 
 
@@ -75,7 +85,7 @@ class LoadManager extends EventEmitter {
 	set root(url) { this._root = url }
 
 
-
+	set debug(debug) { this._debug = debug }
 
 
 
@@ -95,35 +105,72 @@ class LoadManager extends EventEmitter {
 
 		this._workerScript = `
 
+		var STATUS_LOADED = '${LoadManager.STATUS_LOADED}';
+		var STATUS_ERROR = '${LoadManager.STATUS_ERROR}';
+		var STATUS_TIMEOUT = '${LoadManager.STATUS_TIMEOUT}';
+		var STATUS_ABORT = '${LoadManager.STATUS_ABORT}';
+		
+		var XHR_TIMEOUT = ${LoadManager.XHR_TIMEOUT};
+
 		self.xhr = null;
 		self.url = '';
 		self.type = '';
 		self.timeoutId = null;
 		self.requestDate = null;
 		self.isCached = false;
+		self.completionStatus = null;
+		self.debug = ${this._debug}
 
 		self.onLoad = function(event) {
+			self.completionStatus = STATUS_LOADED;
+
 			var dateString = xhr.getResponseHeader('Date');
 			if (dateString != null) {
 				var repsonseDate = new Date(dateString);
 				self.isCached = repsonseDate.getTime() < self.requestDate.getTime();
 			}
 
-			console.log(self + ' worker.onLoad ' + self.url + ' cached:' + self.isCached);
+			if (self._debug) console.log(self + ' worker.onLoad ' + self.url + ' cached:' + self.isCached);
 			self.initNotificationBeacon();
 		}
 
 		self.onabort = function() {
-			console.error(self + ' abort ' + self.url);
+			self.completionStatus = STATUS_ABORT;
+			if (self._debug) console.error(self + ' abort ' + self.url);
+			self.initNotificationBeacon();
 		}
 
-		self.onerror = function() {
-			console.error(self + ' error ' + self.url);
+		self.onerror = function(event) {
+			self.completionStatus = STATUS_ERROR;
+			if (self._debug) console.error(self + ' error ' + self.url);
+			self.initNotificationBeacon();
+		}
+
+		self.ontimeout = function() {
+			self.completionStatus = STATUS_TIMEOUT;
+			if (self._debug) console.error(self + ' timeout ' + self.url);
+			self.initNotificationBeacon();
+		}
+
+		// net::ERR_INTERNET_DISCONNECTED
+		self.onreadystatechange = function(event) {
+			if (self._debug) console.log(self + ' onreadystatechange ' + self.url + ' readyState:' + self.xhr.readyState + ' status:' + self.xhr.status);
+			
+			// check for timeout error here, as we are not using timeout event
+			if (xhr.readyState === 4 && xhr.status !== 200) {
+				var errorDate = new Date();
+				var loadSeconds = (errorDate.getTime() - self.requestDate.getTime()) / 1000;				
+				if (loadSeconds * 100 > 99 && loadSeconds * 100 < 101) {
+					self.ontimeout();
+				} else {
+					self.onerror();
+				}
+			}
 		}
 
 		self.initNotificationBeacon = function() {
 			self.clearNotificationBeacon();
-			self.postMessage({'message':'loaded','isCached':self.isCached});
+			self.postMessage({'status':self.completionStatus, 'isCached':self.isCached});
 
 			self.timeoutId = self.setTimeout(self.initNotificationBeacon, 1000);
 		}
@@ -131,7 +178,7 @@ class LoadManager extends EventEmitter {
 		self.clearNotificationBeacon = function() {
 			if (self.timeoutId > 1) {
 				var str = 'clearNotificationBeacon()' + self.url + ' ' + self.timeoutId
-				console.log(str);
+				if (self._debug) console.log(str);
 			}
 			self.clearTimeout(self.timeoutId);
 		}
@@ -141,17 +188,17 @@ class LoadManager extends EventEmitter {
 			self.url = url;
 			self.type = type;
 			self.xhr = new XMLHttpRequest();
+			self.xhr.timeout = XHR_TIMEOUT;
 			self.xhr.onload = self.onLoad;
 			self.xhr.onerror = self.onerror;
 			self.xhr.onabort = self.onabort;
+			self.xhr.onreadystatechange = self.onreadystatechange;
 			self.xhr.open('GET', url, true);
 			self.xhr.responseType = type; // IE11 must be asigned after open 
 			self.xhr.send();
 		}
 
 		self.retrieveResponse = function() {
-			self.clearNotificationBeacon();
-
 			switch(self.type) {
 			case 'arraybuffer':
 				self.postMessage(self.xhr.response, [self.xhr.response]);
@@ -161,13 +208,22 @@ class LoadManager extends EventEmitter {
 				break;
 			}
 
+			self.destroy();
+			if (self._debug) console.log(self + ' worker.retrieveResponse ' + self.url);
+		}
+
+		self.destroy = function() {
+			self.clearNotificationBeacon();
 			self.close();
-			console.log(self + ' worker.retrieveResponse ' + self.url);
 		}
 
 		self.addEventListener('message', function(event) {
-			if (event.data.action && event.data.action === 'retrieve') {
-				self.retrieveResponse();
+			if (event.data.action) {
+				if (event.data.action === 'retrieve') {
+					self.retrieveResponse();
+				} else if (event.data.action === 'destroy') {
+					self.destroy();
+				}
 			}
 
 			if (event.data.url && event.data.url !== '') {
@@ -196,8 +252,16 @@ class LoadManager extends EventEmitter {
 				this._workersSet.add(worker);
 
 				worker.addEventListener('message', (event) => {
-					if (event.data.constructor === Object && event.data.message === 'loaded') {
-						worker.postMessage({action: 'retrieve'});
+					if (event.data.constructor === Object && event.data.status) {
+
+						switch(event.data.status) {
+							case LoadManager.STATUS_LOADED:
+								worker.postMessage({action: 'retrieve'});
+								break;
+							default:
+								worker.postMessage({action: 'destroy'});
+						}
+
 					} else {
 						const manifest = new Manifest(manifestURL, event.data);
 						this._manifests.set(manifestURL, manifest);
@@ -241,11 +305,26 @@ class LoadManager extends EventEmitter {
 			this._workersSet.add(worker);
 
 			worker.addEventListener('message', (event) => {
-				console.log('worker message received ' + url);
 
-				if (event.data.constructor === Object && event.data.message === 'loaded') {
-					isCached = event.data.isCached;
-					worker.postMessage({action: 'retrieve'});
+				if (this._debug) console.log('worker message received ' + url + ' data.status:' + event.data.status );
+
+				if (event.data.constructor === Object && event.data.status) {
+
+					switch(event.data.status) {
+						case LoadManager.STATUS_LOADED:
+							isCached = event.data.isCached;
+							worker.postMessage({action: 'retrieve'});
+							break;
+						default:
+							worker.postMessage({action: 'destroy'});
+							
+							fragment.isLoading(false);
+							BandwidthManager.stopOnError(fragment);
+
+							this._removeWorker(worker);
+							resolve(fragment);
+					}
+
 				} else {
 					const arraybuffer = new Uint8Array(event.data);
 					BandwidthManager.stop(fragment, arraybuffer.length, isCached);
@@ -291,7 +370,7 @@ class LoadManager extends EventEmitter {
 		if (this._workersSet.has(worker)) {
 			this._workersSet.delete(worker);
 		} else {
-			reject("Can't delete worker");
+			//reject("Can't delete worker");
 		}
 	}
 

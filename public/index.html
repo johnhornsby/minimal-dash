@@ -39,29 +39,6 @@
 
 
 	</style>
-	<script id="image-loader-worker" type="javascript/worker">
-
-        self.addEventListener('message', function(e) {
-            var url = e.data.url;
-
-            var xhr = new XMLHttpRequest();
-
-            xhr.open('GET', url, true);
-
-            xhr.addEventListener("load", function(event) {
-                self.postMessage(url);
-                self.close();
-            }, false);
-
-            xhr.addEventListener("error", function(event) {
-                console.error("Error in loading image within worker " + url);
-                self.close();
-            }, false);
-
-            xhr.send();
-        }, false);
-
-    </script>
 </head>
 <body>
 
