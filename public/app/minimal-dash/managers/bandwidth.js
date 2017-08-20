@@ -172,7 +172,7 @@ class BandwidthManager {
 			// only use history measurements within MEASURE_VALID_READINGS, that are not cached and witin MEASURE_VALID_READINGS
 			let slots = 10;
 			bandwidths = bandwidths.reduceRight((filteredBandwidths, nextBandwidth) => {
-				if (nextBandwidth.isCached !== true && slots > 0) {
+				if (nextBandwidth.isCached !== true && slots > 0 && nextBandwidth.end) {
 					filteredBandwidths.unshift(nextBandwidth);
 
 					slots--;

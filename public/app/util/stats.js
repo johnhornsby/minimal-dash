@@ -85,6 +85,9 @@ export function removeSpikes(values, tolerance = 0) {
 	let area = 0;
 
 	// calculate max amount of variance
+	if (variances[variances.length - 1] === undefined) {
+		debugger;
+	}
 	const maxValue = variances[variances.length - 1].value;
 	const clipPercentage = getAreaPercentage(variances.map(variance => variance.value));
 	const toleranceAdjustment = (1 - clipPercentage) * tolerance;
