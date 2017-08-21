@@ -36,9 +36,6 @@ class LoadManager extends EventEmitter {
 	// unique reference to workers
 	_workersSet = new Set();
 
-	_debug = false;
-
-
 
 
 	constructor(enforcer) {
@@ -63,7 +60,7 @@ class LoadManager extends EventEmitter {
 	 * @param {String} manifestURL The url of the manifest file
 	 * @returns {Promise} The promise returing the Manifest Data Model
 	 */
-	getManifest(manifestURL) { return this._getManifest(manifestURL) }
+	getManifest(manifestURL, debug) { return this._getManifest(manifestURL, debug) }
 
 
 	/**
@@ -73,19 +70,10 @@ class LoadManager extends EventEmitter {
 	 * @param {Object} fragment The empty Fragment Data Model
 	 * @returns {Promise} The promise returing the Fragment Data Model now containing the data
 	 */
-	getData(fragment) { return this._getData(fragment) }
+	getData(fragment, debug) { return this._getData(fragment, debug) }
 
 
-	/**
-	 * Setter setting the root path from which to get the streams fragment files
-	 *
-	 * @public
-	 * @param {String} url The url of the root path
-	 */
-	set root(url) { this._root = url }
 
-
-	set debug(debug) { this._debug = debug }
 
 
 
@@ -101,9 +89,20 @@ class LoadManager extends EventEmitter {
 	 */
 	_initLoadManager() {
 		this._manifests = new Map();
-		// worker script used to load images
+		
+	}
 
-		this._workerScript = `
+
+	/**
+	 * Create Worker Script
+	 *
+	 * @param {Boolean} debug
+	 * @param {String}
+	 * @private
+	 */
+	_getWorkerScript(debug = false) {
+		// worker script used to load images
+		return `
 
 		var STATUS_LOADED = '${LoadManager.STATUS_LOADED}';
 		var STATUS_ERROR = '${LoadManager.STATUS_ERROR}';
@@ -119,7 +118,7 @@ class LoadManager extends EventEmitter {
 		self.requestDate = null;
 		self.isCached = false;
 		self.completionStatus = null;
-		self.debug = ${this._debug}
+		self.debug = ${debug}
 
 		self.onLoad = function(event) {
 			self.completionStatus = STATUS_LOADED;
@@ -130,31 +129,31 @@ class LoadManager extends EventEmitter {
 				self.isCached = repsonseDate.getTime() < self.requestDate.getTime();
 			}
 
-			if (self._debug) console.log(self + ' worker.onLoad ' + self.url + ' cached:' + self.isCached);
+			if (self.debug) console.log(self + ' worker.onLoad ' + self.url + ' cached:' + self.isCached);
 			self.initNotificationBeacon();
 		}
 
 		self.onabort = function() {
 			self.completionStatus = STATUS_ABORT;
-			if (self._debug) console.error(self + ' abort ' + self.url);
+			if (self.debug) console.error(self + ' abort ' + self.url);
 			self.initNotificationBeacon();
 		}
 
 		self.onerror = function(event) {
 			self.completionStatus = STATUS_ERROR;
-			if (self._debug) console.error(self + ' error ' + self.url);
+			if (self.debug) console.error(self + ' error ' + self.url);
 			self.initNotificationBeacon();
 		}
 
 		self.ontimeout = function() {
 			self.completionStatus = STATUS_TIMEOUT;
-			if (self._debug) console.error(self + ' timeout ' + self.url);
+			if (self.debug) console.error(self + ' timeout ' + self.url);
 			self.initNotificationBeacon();
 		}
 
 		// net::ERR_INTERNET_DISCONNECTED
 		self.onreadystatechange = function(event) {
-			if (self._debug) console.log(self + ' onreadystatechange ' + self.url + ' readyState:' + self.xhr.readyState + ' status:' + self.xhr.status);
+			if (self.debug) console.log(self + ' onreadystatechange ' + self.url + ' readyState:' + self.xhr.readyState + ' status:' + self.xhr.status);
 			
 			// check for timeout error here, as we are not using timeout event
 			if (xhr.readyState === 4 && xhr.status !== 200) {
@@ -178,7 +177,7 @@ class LoadManager extends EventEmitter {
 		self.clearNotificationBeacon = function() {
 			if (self.timeoutId > 1) {
 				var str = 'clearNotificationBeacon()' + self.url + ' ' + self.timeoutId
-				if (self._debug) console.log(str);
+				if (self.debug) console.log(str);
 			}
 			self.clearTimeout(self.timeoutId);
 		}
@@ -209,7 +208,7 @@ class LoadManager extends EventEmitter {
 			}
 
 			self.destroy();
-			if (self._debug) console.log(self + ' worker.retrieveResponse ' + self.url);
+			if (self.debug) console.log(self + ' worker.retrieveResponse ' + self.url);
 		}
 
 		self.destroy = function() {
@@ -242,11 +241,12 @@ class LoadManager extends EventEmitter {
 	 * @param {String} manifestURL the url of the manifest file
 	 * @returns {Promise}
 	 */
-	_getManifest(manifestURL) {
+	_getManifest(manifestURL, debug = false) {
 		if (this._manifests.has(manifestURL) === false) {
 
 			return new Promise((resolve, reject) => {
-				const blob = new Blob([this._workerScript]);
+				const workerScript = this._getWorkerScript(debug);
+				const blob = new Blob([workerScript]);
 				const worker = new Worker(window.URL.createObjectURL(blob));
 
 				this._workersSet.add(worker);
@@ -289,8 +289,10 @@ class LoadManager extends EventEmitter {
 	 * @param {Object} fragment The empty Fragment Data Model
 	 * @returns {Promise} The promise returing the Fragment Data Model now containing the data
 	 */
-	_getData(fragment) {
-		const url = this._root + fragment.url;
+	_getData(fragment, debug = false) {
+		let url = fragment.stream.manifest.url;
+		url = url.split("/").splice(0, url.match(/\//g).length).join("/") + "/";
+		url += fragment.url;
 
 		fragment.isLoading();
 		BandwidthManager.start(fragment);
@@ -298,7 +300,8 @@ class LoadManager extends EventEmitter {
 		return new Promise((resolve, reject) => {
 
 			// WORKER
-			const blob = new Blob([this._workerScript]);
+			const workerScript = this._getWorkerScript(debug);
+			const blob = new Blob([workerScript]);
 			const worker = new Worker(window.URL.createObjectURL(blob));
 			let isCached = false;
 
@@ -306,7 +309,7 @@ class LoadManager extends EventEmitter {
 
 			worker.addEventListener('message', (event) => {
 
-				if (this._debug) console.log('worker message received ' + url + ' data.status:' + event.data.status );
+				if (debug) console.log('worker message received ' + url + ' data.status:' + event.data.status );
 
 				if (event.data.constructor === Object && event.data.status) {
 

@@ -72,6 +72,8 @@ export default class Stream {
 
 	get hasBeenAppendded() { return this._hasBeenAppended }
 
+	get manifest() { return this._manifest }
+
 	getFragment(index) { return this._fragments[index] }
 
 	getFragmentInit() { return this._initFragment }
@@ -95,6 +97,7 @@ export default class Stream {
 		this._duration = data.duration;
 		this._media = data.media;
 		this._index = data.index;
+		this._manifest = data.manifest;
 
 		this._fragments = [];
 

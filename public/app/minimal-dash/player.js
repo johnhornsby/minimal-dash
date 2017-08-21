@@ -32,9 +32,6 @@ class Player extends EventEmitter {
 	// controllor the video's related MediaSource and SourceBuffer
 	_sourceController = null;
 
-	// url of manifest file
-	_manifestURL = null;
-
 	// mainifest data object
 	_manifest = null;
 
@@ -51,12 +48,10 @@ class Player extends EventEmitter {
 
 		this._videoElement = videoElement;
 
-		this._manifestURL = manifestURL;
-
 		this._options = options || DEFAULT_OPTIONS;
 
 
-		this._initPlayer();
+		this._initPlayer(manifestURL);
 	}
 
 
@@ -138,9 +133,10 @@ class Player extends EventEmitter {
 	/**
 	 * Initalisation
 	 *
+	 * @param {String} manifestURL
 	 * @private
 	 */
-	_initPlayer() {
+	_initPlayer(manifestURL) {
 		document.addEventListener('visibilitychange', () => {
 			if (this._options.debug) console.log('Document is now ' + ((document.hidden)? 'hidden': 'visible')  );
 
@@ -151,7 +147,7 @@ class Player extends EventEmitter {
 
 		this._bind();
 
-		this._loadManifest();
+		this._loadManifest(manifestURL);
 	}
 
 
@@ -169,14 +165,12 @@ class Player extends EventEmitter {
 	/**
 	 * Called to load the manifest before we do anything else
 	 *
+	 * @param {String} url
 	 * @private
 	 */
-	_loadManifest() {
-		// Remove filename from path to get root directory content
-		LoadManager.root = this._manifestURL.split("/").splice(0, this._manifestURL.match(/\//g).length).join("/") + "/";
-
+	_loadManifest(url) {
 		// Get the manifest file and then kickstart our checkVideoBuffer method
-		LoadManager.getManifest(this._manifestURL)
+		LoadManager.getManifest(url, this._options.debug)
 			.then( manifest => {
 				this._manifest = manifest;
 
@@ -329,7 +323,7 @@ class Player extends EventEmitter {
 			// The SourceController is not initialised we need do this first, then re check
 			} else {
 				state.streamIsInitialised = stream.isInitialised;
-				LoadManager.getData(stream.getFragmentInit())
+				LoadManager.getData(stream.getFragmentInit(), this._options.debug)
 					.then( fragment => this._checkVideoBuffer()) // now data has loaded re check cached data 
 					.catch(this._onError);
 			}
@@ -359,10 +353,10 @@ class Player extends EventEmitter {
 				} else {
 					state.fragmentStatus = fragment.status;
 					if (fragment.status === Fragment.status.EMPTY) {
-						const getDataPromises = [LoadManager.getData(fragment)];
+						const getDataPromises = [LoadManager.getData(fragment, this._options.debug)];
 
 						if (stream.isInitialised === false) {
-							getDataPromises.push(LoadManager.getData(stream.getFragmentInit()));
+							getDataPromises.push(LoadManager.getData(stream.getFragmentInit(), this._options.debug));
 						}
 
 						Promise.all(getDataPromises)

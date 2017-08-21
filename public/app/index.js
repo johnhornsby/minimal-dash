@@ -42,23 +42,20 @@ class Main {
 
 		const button = document.querySelector('.minimal-dash__play-pause');
 
-		button.addEventListener('click', (event) => {
-			const button = event.currentTarget;
-
-			this._updatePlayButton(button, player);
-		});
-	}
-
-
-	_updatePlayButton(button, player) {
-		if (player.paused) {
-
-			player.play();
+		videoElement.addEventListener('play', function() {
 			button.classList.remove('minimal-dash__play-pause--paused');
-		} else {
-			player.pause();
+		});
+		videoElement.addEventListener('pause', function() {
 			button.classList.add('minimal-dash__play-pause--paused');
-		}
+		});
+
+		button.addEventListener('click', (event) => {
+			if (videoElement.paused) {
+				videoElement.play();
+			} else {
+				videoElement.pause();
+			}
+		});
 	}
 }
 

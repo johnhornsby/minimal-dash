@@ -128,7 +128,8 @@ export default class Manifest {
 				mimeType: this._mimeType,
 				duration: this._duration,
 				numberOfFragments: this._numberOfFragments,
-				index: index
+				index: index,
+				manifest: this
 			});
 		});
 	}
