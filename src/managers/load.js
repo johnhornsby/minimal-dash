@@ -1,5 +1,5 @@
 import EventEmitter from 'wolfy87-eventemitter';
-import FetchXHR2 from '../../util/fetch-xhr2';
+import FetchXHR2 from '../util/fetch-xhr2';
 import Manifest from '../models/manifest';
 import BandwidthManager from './bandwidth';
 

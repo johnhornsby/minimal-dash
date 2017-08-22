@@ -6,7 +6,7 @@ import LoadManager from './managers/load';
 import VideoController from './controllers/video-element';
 import SourceController from './controllers/source';
 import BandwidthManager from './managers/bandwidth';
-import EventEmitter from '../util/event-emitter';
+import EventEmitter from './util/event-emitter';
 import Fragment from './models/fragment';
 
 

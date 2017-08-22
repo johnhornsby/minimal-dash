@@ -1,5 +1,5 @@
 import Fragment from '../models/fragment';
-import {removeSpikes} from '../../util/stats';
+import {removeSpikes} from '../util/stats';
 
 export default class BufferOutput {
 
@@ -73,7 +73,7 @@ export default class BufferOutput {
 	_onMouseMove(event) {
 		const mouseX = event.clientX;
 		const mouseY = event.clientY;
-		if (this._columnWidths.length > 0) {
+		if (this._manifest && this._columnWidths.length > 0) {
 			const fragmentIndex = this._columnWidths.findIndex( colData => mouseX >= colData.x && mouseX <= colData.r);
 			let fragment;
 			if (fragmentIndex > -1) {
@@ -292,13 +292,7 @@ export default class BufferOutput {
 		ctx.stroke();
 
 		ctx.font = "10px Arial";
-		// let ping = '';
-		// if (this._manifest.getFragment(0,0).loadData) {
-		// 	ping = `ping: ${this._manifest.getFragment(0,0).loadData.ping}`;
-		// }
 
-
-		// ctx.fillText(ping, x + 10, y + 10);
 
 		const loadedFragments = this._getLoadedFragments();
 
@@ -312,28 +306,17 @@ export default class BufferOutput {
 			return Math.max(previous, next)
 		});
 
-
-
-		// console.dir({
-		// 	'maxBandwidth': maxBandwidth,
-		// 	bandwidth: bandwidths[bandwidths.length - 1],
-		// 	range: ranges[ranges.length - 1],
-		// });
 		maxBandwidth *= 1.1;
-		//maxBandwidth = 1000000;
+
 		if (isFinite(maxBandwidth) === false) {
 			debugger;
 		}
 		if (isNaN(maxBandwidth)) {
 			debugger;
 		}
-		// round to nearest 10
-		//maxBandwidth = Math.pow(10, String(Math.round(maxBandwidth)).length);
-		// maxBandwidth = 1000000;
+
 		const maxBandwidthString =  `${maxBandwidth / 1000000} mbits / s`;
 		
-
-
 		// Draw Estimated Bandwidth
 		ctx.beginPath();
 		ctx.lineWidth = "1";

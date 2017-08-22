@@ -1,0 +1,8 @@
+dev
+src
+.babelrc
+webpack.config.js
+.gitignore
+.npmignore
+.editorconfig
+.travis.yml

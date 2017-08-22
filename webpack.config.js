@@ -1,30 +1,22 @@
 var path = require("path");
-var webpack = require("webpack");
-
 
 
 module.exports = {
-
-	entry: [
-		"webpack-dev-server/client?http://localhost:4000",
-		'./public/app/index.js'
-	],
-
-	output: {
-		path: path.join(__dirname, 'public/dist/'),
-		filename: 'client.js',
-		publicPath: "public/dist/js/"
+	entry: {
+		app: ["./src/player.js"]
 	},
-
+	output: {
+		libraryTarget: "umd",
+		path: path.join(__dirname, './dist/'),
+		filename: "minimal-dash.js"
+	},
 	module: {
 	  rules: [
-	    { test: /\.js$/, exclude: /node_modules/, loader: "babel-loader" }
+	    {
+	      test: /\.js?$/,
+	      exclude: /(dist|lib|node_modules)/,
+	      loader: 'babel-loader'
+	    }
 	  ]
-	},
-
-  	devServer: {
-		noInfo: true
-	},
-
-	devtool: 'source-map"'
+	}
 }

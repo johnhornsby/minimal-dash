@@ -5,7 +5,7 @@
  */
 
 import LoadManager from './load';
-import {removeSpikes} from '../../util/stats';
+import {removeSpikes} from '../util/stats';
 
 
 const MEASURE_VALID_READINGS = 10; // bandwidth readings

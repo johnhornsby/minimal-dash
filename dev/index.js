@@ -1,6 +1,6 @@
 import 'babel-polyfill';
-import Player from './minimal-dash/player';
-import BufferOutput from './minimal-dash/debug/buffer-output';
+import Player from '../src//player';
+import BufferOutput from '../src/debug/buffer-output';
 
 
 class Main {
@@ -21,6 +21,8 @@ class Main {
 	
 	_init() {
 		const videoElement = document.querySelector('video');
+
+		// const url = "http://rdmedia.bbc.co.uk/dash/ondemand/bbb/2/client_manifest-common_init.mpd"
 
 		const url = "https://s3-eu-west-1.amazonaws.com/johnhornsby.me/projects/verusmodus/preview/streams/stream.mpd";
 
