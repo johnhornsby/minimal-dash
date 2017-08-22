@@ -315,7 +315,7 @@ export default class VideoElement extends EventEmitter {
 		const bufferMinLength = (this._videoElement.preload === "auto") ? this._manifest.duration: BUFFER_MIN_LENGTH;
 
 		let bufferIndex = this._videoElement.buffered.length;
-		const fragmentDuration = (this._manifest.fragmentDuration / 1000);
+		const fragmentDuration = this._manifest.fragmentDuration;
 
 		let bufferEmptyAtTime = null;
 		const ranges = [];

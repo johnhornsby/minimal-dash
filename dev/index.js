@@ -22,10 +22,13 @@ class Main {
 	_init() {
 		const videoElement = document.querySelector('video');
 
+		let url;
+
 		// const url = "http://rdmedia.bbc.co.uk/dash/ondemand/bbb/2/client_manifest-common_init.mpd"
 
-		const url = "https://s3-eu-west-1.amazonaws.com/johnhornsby.me/projects/verusmodus/preview/streams/stream.mpd";
+		url = "https://s3-eu-west-1.amazonaws.com/johnhornsby.me/projects/verusmodus/preview/streams/stream.mpd";
 
+		url = "https://bitmovin-a.akamaihd.net/content/MI201109210084_1/mpds/f08e80da-bf1d-4e3d-8899-f0f6155f6efa.mpd";
 		const player = new Player(videoElement, url, {
 			initialStreamIndex: 3,
 			debug: true

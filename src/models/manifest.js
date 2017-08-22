@@ -70,7 +70,7 @@ export default class Manifest {
 	}
 
 	getFragmentIndex(time) { 
-		return Math.floor(time / (this._fragmentDuration / 1000));
+		return Math.floor(time / this._fragmentDuration);
 	}
 
 	getCachedFragment(index) { return this._getFragmentWithStatus(index) }
@@ -92,31 +92,37 @@ export default class Manifest {
 		const parser = new DOMParser();
 		const xml = parser.parseFromString(string, 'text/xml').documentElement;
 
-		let node = xml.querySelector('SegmentTemplate');
+		let segmentNode = xml.querySelector('SegmentTemplate');
 
-		this._fragmentDuration = parseInt(node.getAttribute('duration'));
-		this._initialization = node.getAttribute('initialization');
-		this._media = node.getAttribute('media');
-		this._startNumber = parseInt(node.getAttribute('startNumber'));
-		this._timescale = parseInt(node.getAttribute('timescale'));
+		this._fragmentDuration = parseInt(segmentNode.getAttribute('duration')) / parseInt(segmentNode.getAttribute('timescale'));
+		this._initialization = segmentNode.getAttribute('initialization');
+		this._media = segmentNode.getAttribute('media');
+		this._startNumber = parseInt(segmentNode.getAttribute('startNumber'));
+		this._timescale = parseInt(segmentNode.getAttribute('timescale'));
 
-		node = xml.querySelector('AdaptationSet');
+		segmentNode = xml.querySelector('AdaptationSet');
 
-		this._mimeType = node.getAttribute('mimeType');
+		this._mimeType = segmentNode.getAttribute('mimeType');
 
 		const durationString = xml.getAttribute('mediaPresentationDuration');
-		let seconds = durationString.match(/\d*(?=S)/);
-		let minutes = durationString.match(/\d*(?=M)/) || [0];
-		let hours = durationString.match(/\d*(?=H)/) || [0];
 
-		this._duration = (parseInt(hours[0]) * 60 * 60) + (parseInt(minutes[0]) * 60) + parseInt(seconds[0]);
-		this._numberOfFragments = Math.ceil(this._duration / (this._fragmentDuration / 1000));
+		// https://stackoverflow.com/questions/14934089/convert-iso-8601-duration-with-javascript
+		const iso8601DurationRegex = /(-)?P(?:([\.,\d]+)Y)?(?:([\.,\d]+)M)?(?:([\.,\d]+)W)?(?:([\.,\d]+)D)?T(?:([\.,\d]+)H)?(?:([\.,\d]+)M)?(?:([\.,\d]+)S)?/;
+
+		const matches = durationString.match(iso8601DurationRegex);
+
+		let seconds = matches[8] === undefined ? 0 : matches[8];
+		let minutes = matches[7] === undefined ? 0 : matches[7];
+		let hours = matches[6] === undefined ? 0 : matches[6];
+
+		this._duration = (parseInt(hours) * 60 * 60) + (parseInt(minutes) * 60) + parseInt(seconds);
+		this._numberOfFragments = Math.ceil(this._duration / this._fragmentDuration);
 
 		this._streams = Array.from(xml.querySelectorAll('Representation')).map((node, index) => {
 
 			return new Stream({
 				bandwidth: node.getAttribute('bandwidth'),
-				codecs: node.getAttribute('codecs'),
+				codecs: node.getAttribute('codecs') || segmentNode.getAttribute('codecs'),
 				frameRate: node.getAttribute('frameRate'),
 				height: node.getAttribute('height'),
 				id: node.getAttribute('id'),

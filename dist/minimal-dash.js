@@ -1126,7 +1126,7 @@ var LoadManager = function (_EventEmitter) {
 			var debug = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : false;
 
 			// worker script used to load images
-			return '\n\n\t\tvar STATUS_LOADED = \'' + LoadManager.STATUS_LOADED + '\';\n\t\tvar STATUS_ERROR = \'' + LoadManager.STATUS_ERROR + '\';\n\t\tvar STATUS_TIMEOUT = \'' + LoadManager.STATUS_TIMEOUT + '\';\n\t\tvar STATUS_ABORT = \'' + LoadManager.STATUS_ABORT + '\';\n\t\t\n\t\tvar XHR_TIMEOUT = ' + LoadManager.XHR_TIMEOUT + ';\n\n\t\tself.xhr = null;\n\t\tself.url = \'\';\n\t\tself.type = \'\';\n\t\tself.timeoutId = null;\n\t\tself.requestDate = null;\n\t\tself.isCached = false;\n\t\tself.completionStatus = null;\n\t\tself.debug = ' + debug + '\n\n\t\tself.onLoad = function(event) {\n\t\t\tself.completionStatus = STATUS_LOADED;\n\n\t\t\tvar dateString = xhr.getResponseHeader(\'Date\');\n\t\t\tif (dateString != null) {\n\t\t\t\tvar repsonseDate = new Date(dateString);\n\t\t\t\tself.isCached = repsonseDate.getTime() < self.requestDate.getTime();\n\t\t\t}\n\n\t\t\tif (self.debug) console.log(self + \' worker.onLoad \' + self.url + \' cached:\' + self.isCached);\n\t\t\tself.initNotificationBeacon();\n\t\t}\n\n\t\tself.onabort = function() {\n\t\t\tself.completionStatus = STATUS_ABORT;\n\t\t\tif (self.debug) console.error(self + \' abort \' + self.url);\n\t\t\tself.initNotificationBeacon();\n\t\t}\n\n\t\tself.onerror = function(event) {\n\t\t\tself.completionStatus = STATUS_ERROR;\n\t\t\tif (self.debug) console.error(self + \' error \' + self.url);\n\t\t\tself.initNotificationBeacon();\n\t\t}\n\n\t\tself.ontimeout = function() {\n\t\t\tself.completionStatus = STATUS_TIMEOUT;\n\t\t\tif (self.debug) console.error(self + \' timeout \' + self.url);\n\t\t\tself.initNotificationBeacon();\n\t\t}\n\n\t\t// net::ERR_INTERNET_DISCONNECTED\n\t\tself.onreadystatechange = function(event) {\n\t\t\tif (self.debug) console.log(self + \' onreadystatechange \' + self.url + \' readyState:\' + self.xhr.readyState + \' status:\' + self.xhr.status);\n\t\t\t\n\t\t\t// check for timeout error here, as we are not using timeout event\n\t\t\tif (xhr.readyState === 4 && xhr.status !== 200) {\n\t\t\t\tvar errorDate = new Date();\n\t\t\t\tvar loadSeconds = (errorDate.getTime() - self.requestDate.getTime()) / 1000;\t\t\t\t\n\t\t\t\tif (loadSeconds * 100 > 99 && loadSeconds * 100 < 101) {\n\t\t\t\t\tself.ontimeout();\n\t\t\t\t} else {\n\t\t\t\t\tself.onerror();\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\n\t\tself.initNotificationBeacon = function() {\n\t\t\tself.clearNotificationBeacon();\n\t\t\tself.postMessage({\'status\':self.completionStatus, \'isCached\':self.isCached});\n\n\t\t\tself.timeoutId = self.setTimeout(self.initNotificationBeacon, 1000);\n\t\t}\n\n\t\tself.clearNotificationBeacon = function() {\n\t\t\tif (self.timeoutId > 1) {\n\t\t\t\tvar str = \'clearNotificationBeacon()\' + self.url + \' \' + self.timeoutId\n\t\t\t\tif (self.debug) console.log(str);\n\t\t\t}\n\t\t\tself.clearTimeout(self.timeoutId);\n\t\t}\n\n\t\tself.initLoad = function(url, type) {\n\t\t\tself.requestDate = new Date();\n\t\t\tself.url = url;\n\t\t\tself.type = type;\n\t\t\tself.xhr = new XMLHttpRequest();\n\t\t\tself.xhr.timeout = XHR_TIMEOUT;\n\t\t\tself.xhr.onload = self.onLoad;\n\t\t\tself.xhr.onerror = self.onerror;\n\t\t\tself.xhr.onabort = self.onabort;\n\t\t\tself.xhr.onreadystatechange = self.onreadystatechange;\n\t\t\tself.xhr.open(\'GET\', url, true);\n\t\t\tself.xhr.responseType = type; // IE11 must be asigned after open \n\t\t\tself.xhr.send();\n\t\t}\n\n\t\tself.retrieveResponse = function() {\n\t\t\tswitch(self.type) {\n\t\t\tcase \'arraybuffer\':\n\t\t\t\tself.postMessage(self.xhr.response, [self.xhr.response]);\n\t\t\t\tbreak;\n\t\t\tcase \'text\':\n\t\t\t\tself.postMessage(self.xhr.response);\n\t\t\t\tbreak;\n\t\t\t}\n\n\t\t\tself.destroy();\n\t\t\tif (self.debug) console.log(self + \' worker.retrieveResponse \' + self.url);\n\t\t}\n\n\t\tself.destroy = function() {\n\t\t\tself.clearNotificationBeacon();\n\t\t\tself.close();\n\t\t}\n\n\t\tself.addEventListener(\'message\', function(event) {\n\t\t\tif (event.data.action) {\n\t\t\t\tif (event.data.action === \'retrieve\') {\n\t\t\t\t\tself.retrieveResponse();\n\t\t\t\t} else if (event.data.action === \'destroy\') {\n\t\t\t\t\tself.destroy();\n\t\t\t\t}\n\t\t\t}\n\n\t\t\tif (event.data.url && event.data.url !== \'\') {\n\t\t\t\tself.initLoad(event.data.url, event.data.type);\n\t\t\t}\n\t\t}, false);';
+			return '\n\n\t\tvar STATUS_LOADED = \'' + LoadManager.STATUS_LOADED + '\';\n\t\tvar STATUS_ERROR = \'' + LoadManager.STATUS_ERROR + '\';\n\t\tvar STATUS_TIMEOUT = \'' + LoadManager.STATUS_TIMEOUT + '\';\n\t\tvar STATUS_ABORT = \'' + LoadManager.STATUS_ABORT + '\';\n\t\t\n\t\tvar XHR_TIMEOUT = ' + LoadManager.XHR_TIMEOUT + ';\n\n\t\tself.xhr = null;\n\t\tself.url = \'\';\n\t\tself.type = \'\';\n\t\tself.timeoutId = null;\n\t\tself.requestDate = null;\n\t\tself.isCached = false;\n\t\tself.accessibleDateInHeader = false;\n\t\tself.completionStatus = null;\n\t\tself.debug = ' + debug + '\n\n\t\tself.onLoad = function(event) {\n\t\t\tself.completionStatus = STATUS_LOADED;\n\t\t\tvar dateString;\n\n\t\t\tif (xhr.getAllResponseHeaders().indexOf(\'date: \') > -1) {\n\t\t\t\tdateString = xhr.getResponseHeader(\'Date\');\n\t\t\t}\n\t\t\t\n\t\t\tif (dateString != null) {\n\t\t\t\tvar repsonseDate = new Date(dateString);\n\t\t\t\tself.isCached = repsonseDate.getTime() < self.requestDate.getTime();\n\t\t\t\tself.accessibleDateInHeader = true;\n\t\t\t}\n\n\t\t\tif (self.debug) console.log(self + \' worker.onLoad \' + self.url + \' cached:\' + self.isCached);\n\t\t\tself.initNotificationBeacon();\n\t\t}\n\n\t\tself.onabort = function() {\n\t\t\tself.completionStatus = STATUS_ABORT;\n\t\t\tif (self.debug) console.error(self + \' abort \' + self.url);\n\t\t\tself.initNotificationBeacon();\n\t\t}\n\n\t\tself.onerror = function(event) {\n\t\t\tself.completionStatus = STATUS_ERROR;\n\t\t\tif (self.debug) console.error(self + \' error \' + self.url);\n\t\t\tself.initNotificationBeacon();\n\t\t}\n\n\t\tself.ontimeout = function() {\n\t\t\tself.completionStatus = STATUS_TIMEOUT;\n\t\t\tif (self.debug) console.error(self + \' timeout \' + self.url);\n\t\t\tself.initNotificationBeacon();\n\t\t}\n\n\t\t// net::ERR_INTERNET_DISCONNECTED\n\t\tself.onreadystatechange = function(event) {\n\t\t\tif (self.debug) console.log(self + \' onreadystatechange \' + self.url + \' readyState:\' + self.xhr.readyState + \' status:\' + self.xhr.status);\n\t\t\t\n\t\t\t// check for timeout error here, as we are not using timeout event\n\t\t\tif (xhr.readyState === 4 && xhr.status !== 200) {\n\t\t\t\tvar errorDate = new Date();\n\t\t\t\tvar loadSeconds = (errorDate.getTime() - self.requestDate.getTime()) / 1000;\t\t\t\t\n\t\t\t\tif (loadSeconds * 100 > 99 && loadSeconds * 100 < 101) {\n\t\t\t\t\tself.ontimeout();\n\t\t\t\t} else {\n\t\t\t\t\tself.onerror();\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\n\t\tself.initNotificationBeacon = function() {\n\t\t\tself.clearNotificationBeacon();\n\t\t\tself.postMessage({\'status\':self.completionStatus, \'isCached\':self.isCached, \'accessibleDateInHeader\':self.accessibleDateInHeader});\n\n\t\t\tself.timeoutId = self.setTimeout(self.initNotificationBeacon, 1000);\n\t\t}\n\n\t\tself.clearNotificationBeacon = function() {\n\t\t\tif (self.timeoutId > 1) {\n\t\t\t\tvar str = \'clearNotificationBeacon()\' + self.url + \' \' + self.timeoutId\n\t\t\t\tif (self.debug) console.log(str);\n\t\t\t}\n\t\t\tself.clearTimeout(self.timeoutId);\n\t\t}\n\n\t\tself.initLoad = function(url, type) {\n\t\t\tself.requestDate = new Date();\n\t\t\tself.url = url;\n\t\t\tself.type = type;\n\t\t\tself.xhr = new XMLHttpRequest();\n\t\t\tself.xhr.timeout = XHR_TIMEOUT;\n\t\t\tself.xhr.onload = self.onLoad;\n\t\t\tself.xhr.onerror = self.onerror;\n\t\t\tself.xhr.onabort = self.onabort;\n\t\t\tself.xhr.onreadystatechange = self.onreadystatechange;\n\t\t\tself.xhr.open(\'GET\', url, true);\n\t\t\tself.xhr.responseType = type; // IE11 must be asigned after open \n\t\t\tself.xhr.send();\n\t\t}\n\n\t\tself.retrieveResponse = function() {\n\t\t\tswitch(self.type) {\n\t\t\tcase \'arraybuffer\':\n\t\t\t\tself.postMessage(self.xhr.response, [self.xhr.response]);\n\t\t\t\tbreak;\n\t\t\tcase \'text\':\n\t\t\t\tself.postMessage(self.xhr.response);\n\t\t\t\tbreak;\n\t\t\t}\n\n\t\t\tself.destroy();\n\t\t\tif (self.debug) console.log(self + \' worker.retrieveResponse \' + self.url);\n\t\t}\n\n\t\tself.destroy = function() {\n\t\t\tself.clearNotificationBeacon();\n\t\t\tself.close();\n\t\t}\n\n\t\tself.addEventListener(\'message\', function(event) {\n\t\t\tif (event.data.action) {\n\t\t\t\tif (event.data.action === \'retrieve\') {\n\t\t\t\t\tself.retrieveResponse();\n\t\t\t\t} else if (event.data.action === \'destroy\') {\n\t\t\t\t\tself.destroy();\n\t\t\t\t}\n\t\t\t}\n\n\t\t\tif (event.data.url && event.data.url !== \'\') {\n\t\t\t\tself.initLoad(event.data.url, event.data.type);\n\t\t\t}\n\t\t}, false);';
 		}
 
 		/**
@@ -1379,7 +1379,7 @@ var Manifest = function () {
 	}, {
 		key: 'getFragmentIndex',
 		value: function getFragmentIndex(time) {
-			return Math.floor(time / (this._fragmentDuration / 1000));
+			return Math.floor(time / this._fragmentDuration);
 		}
 	}, {
 		key: 'getCachedFragment',
@@ -1404,31 +1404,37 @@ var Manifest = function () {
 			var parser = new DOMParser();
 			var xml = parser.parseFromString(string, 'text/xml').documentElement;
 
-			var node = xml.querySelector('SegmentTemplate');
+			var segmentNode = xml.querySelector('SegmentTemplate');
 
-			this._fragmentDuration = parseInt(node.getAttribute('duration'));
-			this._initialization = node.getAttribute('initialization');
-			this._media = node.getAttribute('media');
-			this._startNumber = parseInt(node.getAttribute('startNumber'));
-			this._timescale = parseInt(node.getAttribute('timescale'));
+			this._fragmentDuration = parseInt(segmentNode.getAttribute('duration')) / parseInt(segmentNode.getAttribute('timescale'));
+			this._initialization = segmentNode.getAttribute('initialization');
+			this._media = segmentNode.getAttribute('media');
+			this._startNumber = parseInt(segmentNode.getAttribute('startNumber'));
+			this._timescale = parseInt(segmentNode.getAttribute('timescale'));
 
-			node = xml.querySelector('AdaptationSet');
+			segmentNode = xml.querySelector('AdaptationSet');
 
-			this._mimeType = node.getAttribute('mimeType');
+			this._mimeType = segmentNode.getAttribute('mimeType');
 
 			var durationString = xml.getAttribute('mediaPresentationDuration');
-			var seconds = durationString.match(/\d*(?=S)/);
-			var minutes = durationString.match(/\d*(?=M)/) || [0];
-			var hours = durationString.match(/\d*(?=H)/) || [0];
 
-			this._duration = parseInt(hours[0]) * 60 * 60 + parseInt(minutes[0]) * 60 + parseInt(seconds[0]);
-			this._numberOfFragments = Math.ceil(this._duration / (this._fragmentDuration / 1000));
+			// https://stackoverflow.com/questions/14934089/convert-iso-8601-duration-with-javascript
+			var iso8601DurationRegex = /(-)?P(?:([\.,\d]+)Y)?(?:([\.,\d]+)M)?(?:([\.,\d]+)W)?(?:([\.,\d]+)D)?T(?:([\.,\d]+)H)?(?:([\.,\d]+)M)?(?:([\.,\d]+)S)?/;
+
+			var matches = durationString.match(iso8601DurationRegex);
+
+			var seconds = matches[8] === undefined ? 0 : matches[8];
+			var minutes = matches[7] === undefined ? 0 : matches[7];
+			var hours = matches[6] === undefined ? 0 : matches[6];
+
+			this._duration = parseInt(hours) * 60 * 60 + parseInt(minutes) * 60 + parseInt(seconds);
+			this._numberOfFragments = Math.ceil(this._duration / this._fragmentDuration);
 
 			this._streams = Array.from(xml.querySelectorAll('Representation')).map(function (node, index) {
 
 				return new __WEBPACK_IMPORTED_MODULE_0__stream__["a" /* default */]({
 					bandwidth: node.getAttribute('bandwidth'),
-					codecs: node.getAttribute('codecs'),
+					codecs: node.getAttribute('codecs') || segmentNode.getAttribute('codecs'),
 					frameRate: node.getAttribute('frameRate'),
 					height: node.getAttribute('height'),
 					id: node.getAttribute('id'),
@@ -2488,7 +2494,7 @@ var VideoElement = function (_EventEmitter) {
 			var bufferMinLength = this._videoElement.preload === "auto" ? this._manifest.duration : BUFFER_MIN_LENGTH;
 
 			var bufferIndex = this._videoElement.buffered.length;
-			var fragmentDuration = this._manifest.fragmentDuration / 1000;
+			var fragmentDuration = this._manifest.fragmentDuration;
 
 			var bufferEmptyAtTime = null;
 			var ranges = [];

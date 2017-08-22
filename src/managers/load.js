@@ -117,16 +117,22 @@ class LoadManager extends EventEmitter {
 		self.timeoutId = null;
 		self.requestDate = null;
 		self.isCached = false;
+		self.accessibleDateInHeader = false;
 		self.completionStatus = null;
 		self.debug = ${debug}
 
 		self.onLoad = function(event) {
 			self.completionStatus = STATUS_LOADED;
+			var dateString;
 
-			var dateString = xhr.getResponseHeader('Date');
+			if (xhr.getAllResponseHeaders().indexOf('date: ') > -1) {
+				dateString = xhr.getResponseHeader('Date');
+			}
+			
 			if (dateString != null) {
 				var repsonseDate = new Date(dateString);
 				self.isCached = repsonseDate.getTime() < self.requestDate.getTime();
+				self.accessibleDateInHeader = true;
 			}
 
 			if (self.debug) console.log(self + ' worker.onLoad ' + self.url + ' cached:' + self.isCached);
@@ -169,7 +175,7 @@ class LoadManager extends EventEmitter {
 
 		self.initNotificationBeacon = function() {
 			self.clearNotificationBeacon();
-			self.postMessage({'status':self.completionStatus, 'isCached':self.isCached});
+			self.postMessage({'status':self.completionStatus, 'isCached':self.isCached, 'accessibleDateInHeader':self.accessibleDateInHeader});
 
 			self.timeoutId = self.setTimeout(self.initNotificationBeacon, 1000);
 		}
