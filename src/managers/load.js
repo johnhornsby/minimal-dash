@@ -301,7 +301,7 @@ class LoadManager extends EventEmitter {
 		url += fragment.url;
 
 		fragment.isLoading();
-		BandwidthManager.start(fragment);
+		BandwidthManager.start(fragment, debug);
 
 		return new Promise((resolve, reject) => {
 
@@ -336,7 +336,7 @@ class LoadManager extends EventEmitter {
 
 				} else {
 					const arraybuffer = new Uint8Array(event.data);
-					BandwidthManager.stop(fragment, arraybuffer.length, isCached);
+					BandwidthManager.stop(fragment, arraybuffer.length, isCached, debug);
 					fragment.bytes = arraybuffer;
 
 					this._removeWorker(worker);

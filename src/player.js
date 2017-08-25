@@ -267,14 +267,14 @@ class Player extends EventEmitter {
 		state.fragmentIndex = fragmentIndex;
 
 		// check through all streams to find any cached fragment
-		let fragment = this._manifest.getCachedFragment(fragmentIndex);
+		let loadedFragment = this._manifest.getLoadedFragment(fragmentIndex);
 		let stream;
 
 
 		// is there a fragment in the cache
-		if (fragment) {
-			state.fragment = fragment.constructor;
-			stream = fragment.stream;
+		if (loadedFragment) {
+			state.fragment = loadedFragment.constructor;
+			stream = loadedFragment.stream;
 			state.stream = stream.constructor;
 			// Do we have the init fragment for the stream
 			if (stream.isInitialised) {
@@ -291,12 +291,12 @@ class Player extends EventEmitter {
 						})
 						.catch(this._onError);
 
-				// Does the current SourceController quality match incoming fragment stream quality,
-				// if so then we can add the fragment data to the buffer
-				} else if (this._sourceController.quality === fragment.stream.index) {
-					state.quality = fragment.stream.index;
+				// Does the current SourceController quality match incoming loadedFragment stream quality,
+				// if so then we can add the loadedFragment data to the buffer
+				} else if (this._sourceController.quality === loadedFragment.stream.index) {
+					state.quality = loadedFragment.stream.index;
 					state.switchStreams = false;
-					this._sourceController.appendToBuffer(fragment)
+					this._sourceController.appendToBuffer(loadedFragment)
 						.then(() => {
 							if (this._options.debug) console.log('_checkCachedData COMPLETE');
 
@@ -305,13 +305,13 @@ class Player extends EventEmitter {
 						.catch(this._onError);
 
 				// If the Fragment quality is different to that of the SourceController then we'll,
-				// switch streams first before appending the fragment data
+				// switch streams first before appending the loadedFragment data
 				} else {
 					//console.log('APPEND DIFFERENT STREAM');
 					state.switchStreams = true;
 					Promise.resolve()
 						.then(() => this._sourceController.appendToBuffer(stream.getFragmentInit()))
-						.then(() => this._sourceController.appendToBuffer(fragment))
+						.then(() => this._sourceController.appendToBuffer(loadedFragment))
 						.then(() => {
 							if (this._options.debug) console.log('_checkCachedData COMPLETE');
 
@@ -346,7 +346,7 @@ class Player extends EventEmitter {
 				}
 
 				stream = this._manifest.getStream(streamIndex);
-				fragment = stream.getFragment(fragmentIndex);
+				let fragment = stream.getFragment(fragmentIndex);
 
 				if (fragment.loadAttempts > Player.MAX_LOAD_ATTEMPTS) {
 					throw new Error('Unable to load Fragment ' + fragment.url);

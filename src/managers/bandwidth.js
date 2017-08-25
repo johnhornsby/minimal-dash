@@ -36,8 +36,6 @@ class BandwidthManager {
 
 	_history = null;
 
-	_debug = false;
-
 
 
 
@@ -55,15 +53,13 @@ class BandwidthManager {
 	Public
 	_____________________________________________*/
 
-	start(fragment) { this._start(fragment) }
+	start(fragment, debug) { this._start(fragment, debug) }
 
-	stop(fragment, bytes, isCached) { this._stop(fragment, bytes, isCached) }
+	stop(fragment, bytes, isCached, debug) { this._stop(fragment, bytes, isCached, debug) }
 
 	stopOnError(fragment) { this._stopOnError(fragment) }
 
 	getQuality(manifest) { return this._getQuality(manifest) }
-
-	set debug(debug) { this._debug = debug }
 
 
 
@@ -85,7 +81,7 @@ class BandwidthManager {
 	 * 
 	 * @param {Object} Fragment Model
 	 */
-	_start(fragment) {
+	_start(fragment, debug = false) {
 		const identifier = fragment.url;
 		const {bandwidth, range} = this._getBandwidth();
 
@@ -97,7 +93,7 @@ class BandwidthManager {
 			estimatedBandwidth: bandwidth
 		})
 
-		if (this._debug) console.log(`_start fragment ${fragment.url}`);
+		if (debug) console.log(`_start fragment ${fragment.url}`);
 	}
 
 
@@ -107,7 +103,7 @@ class BandwidthManager {
 	 * @param {Object} Fragment Model
 	 * @param {ArrayBuffer} bytes the data
 	 */
-	_stop(fragment, bytes, isCached = false) {
+	_stop(fragment, bytes, isCached = false, debug = false) {
 		const identifier = fragment.url;
 
 		const historyData = this._findIndetifier(identifier);
@@ -128,7 +124,7 @@ class BandwidthManager {
 			}
 		}
 
-		if (this._debug) console.log(`_stop fragment ${fragment.url} load time: ${historyData.time} mbps: ${historyData.bandwidth / 1024 / 1024}`);
+		if (debug) console.log(`_stop fragment ${fragment.url} load time: ${historyData.time} mbps: ${historyData.bandwidth / 1024 / 1024}`);
 
 		fragment.loadData = historyData;
 	}
@@ -228,11 +224,20 @@ class BandwidthManager {
 		let increment = 0;
 		let streamIndex = manifest.numberOfStreams - 1; // initially set to minimum
 
+		// iterate through streams and determine the stream that is just under the bandwidth 
+
+		let highestValidBandwidth = 0;		
+
 		while(increment < manifest.numberOfStreams) {
 
-			if (parseInt(manifest.getStream(increment).bandwidth) < bandwidth) {
+			let streamData = {
+				bandwidth: parseInt(manifest.getStream(increment).bandwidth),
+				index: increment
+			}
+
+			if (streamData.bandwidth < bandwidth && streamData.bandwidth > highestValidBandwidth) {
+				highestValidBandwidth = streamData.bandwidth;
 				streamIndex = increment;
-				break;
 			}
 
 			increment++;

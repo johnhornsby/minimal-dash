@@ -73,7 +73,7 @@ export default class Manifest {
 		return Math.floor(time / this._fragmentDuration);
 	}
 
-	getCachedFragment(index) { return this._getFragmentWithStatus(index) }
+	getLoadedFragment(index) { return this._getFragmentWithStatus(index) }
 
 	getLoadingFragment(index) { return this._getFragmentWithStatus(index, Fragment.status.LOADING ) }
 
