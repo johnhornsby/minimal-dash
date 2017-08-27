@@ -5,7 +5,7 @@
   "main": "dist/minimal-dash",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "webpack"
+    "build": "node_modules/.bin/webpack"
   },
   "keywords": [
     "MSE",

@@ -762,7 +762,6 @@ var BandwidthManager = function () {
 		_classCallCheck(this, BandwidthManager);
 
 		this._history = null;
-		this._debug = false;
 
 		if (enforcer != singletonEnforcer) throw new Error("Cannot construct singleton");
 	}
@@ -773,13 +772,13 @@ var BandwidthManager = function () {
 
 	_createClass(BandwidthManager, [{
 		key: 'start',
-		value: function start(fragment) {
-			this._start(fragment);
+		value: function start(fragment, debug) {
+			this._start(fragment, debug);
 		}
 	}, {
 		key: 'stop',
-		value: function stop(fragment, bytes, isCached) {
-			this._stop(fragment, bytes, isCached);
+		value: function stop(fragment, bytes, isCached, debug) {
+			this._stop(fragment, bytes, isCached, debug);
 		}
 	}, {
 		key: 'stopOnError',
@@ -791,14 +790,13 @@ var BandwidthManager = function () {
 		value: function getQuality(manifest) {
 			return this._getQuality(manifest);
 		}
-	}, {
-		key: '_init',
-
 
 		/*____________________________________________
   	Private 
   _____________________________________________*/
 
+	}, {
+		key: '_init',
 		value: function _init() {
 			this._history = [];
 		}
@@ -812,6 +810,8 @@ var BandwidthManager = function () {
 	}, {
 		key: '_start',
 		value: function _start(fragment) {
+			var debug = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
+
 			var identifier = fragment.url;
 
 			var _getBandwidth2 = this._getBandwidth(),
@@ -826,7 +826,7 @@ var BandwidthManager = function () {
 				estimatedBandwidth: bandwidth
 			});
 
-			if (this._debug) console.log('_start fragment ' + fragment.url);
+			if (debug) console.log('_start fragment ' + fragment.url);
 		}
 
 		/**
@@ -840,6 +840,7 @@ var BandwidthManager = function () {
 		key: '_stop',
 		value: function _stop(fragment, bytes) {
 			var isCached = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : false;
+			var debug = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : false;
 
 			var identifier = fragment.url;
 
@@ -861,7 +862,7 @@ var BandwidthManager = function () {
 				}
 			}
 
-			if (this._debug) console.log('_stop fragment ' + fragment.url + ' load time: ' + historyData.time + ' mbps: ' + historyData.bandwidth / 1024 / 1024);
+			if (debug) console.log('_stop fragment ' + fragment.url + ' load time: ' + historyData.time + ' mbps: ' + historyData.bandwidth / 1024 / 1024);
 
 			fragment.loadData = historyData;
 		}
@@ -974,22 +975,26 @@ var BandwidthManager = function () {
 			var increment = 0;
 			var streamIndex = manifest.numberOfStreams - 1; // initially set to minimum
 
+			// iterate through streams and determine the stream that is just under the bandwidth 
+
+			var highestValidBandwidth = 0;
+
 			while (increment < manifest.numberOfStreams) {
 
-				if (parseInt(manifest.getStream(increment).bandwidth) < bandwidth) {
+				var streamData = {
+					bandwidth: parseInt(manifest.getStream(increment).bandwidth),
+					index: increment
+				};
+
+				if (streamData.bandwidth < bandwidth && streamData.bandwidth > highestValidBandwidth) {
+					highestValidBandwidth = streamData.bandwidth;
 					streamIndex = increment;
-					break;
 				}
 
 				increment++;
 			}
 
 			return streamIndex;
-		}
-	}, {
-		key: 'debug',
-		set: function set(debug) {
-			this._debug = debug;
 		}
 	}]);
 
@@ -1203,7 +1208,7 @@ var LoadManager = function (_EventEmitter) {
 			url += fragment.url;
 
 			fragment.isLoading();
-			__WEBPACK_IMPORTED_MODULE_3__bandwidth__["a" /* default */].start(fragment);
+			__WEBPACK_IMPORTED_MODULE_3__bandwidth__["a" /* default */].start(fragment, debug);
 
 			return new Promise(function (resolve, reject) {
 
@@ -1237,7 +1242,7 @@ var LoadManager = function (_EventEmitter) {
 						}
 					} else {
 						var arraybuffer = new Uint8Array(event.data);
-						__WEBPACK_IMPORTED_MODULE_3__bandwidth__["a" /* default */].stop(fragment, arraybuffer.length, isCached);
+						__WEBPACK_IMPORTED_MODULE_3__bandwidth__["a" /* default */].stop(fragment, arraybuffer.length, isCached, debug);
 						fragment.bytes = arraybuffer;
 
 						_this3._removeWorker(worker);
@@ -1382,8 +1387,8 @@ var Manifest = function () {
 			return Math.floor(time / this._fragmentDuration);
 		}
 	}, {
-		key: 'getCachedFragment',
-		value: function getCachedFragment(index) {
+		key: 'getLoadedFragment',
+		value: function getLoadedFragment(index) {
 			return this._getFragmentWithStatus(index);
 		}
 	}, {
@@ -1709,9 +1714,9 @@ var Player = function (_EventEmitter) {
 	}, {
 		key: '_onManifestReady',
 		value: function _onManifestReady() {
+			var bufferMinLength = 10;
 			// Create VideoController that will listen to the video element
-			this._videoController = new __WEBPACK_IMPORTED_MODULE_1__controllers_video_element__["a" /* default */](this._videoElement, this._options.debug);
-			this._videoController.manifest = this._manifest;
+			this._videoController = new __WEBPACK_IMPORTED_MODULE_1__controllers_video_element__["a" /* default */](this._videoElement, this._manifest, bufferMinLength, this._options.debug);
 			this._videoController.on(__WEBPACK_IMPORTED_MODULE_1__controllers_video_element__["a" /* default */].EVENT_TIME_UPDATE, this._onTimeUpdate);
 
 			// Create SourceController that controls the MediaSource
@@ -1796,13 +1801,13 @@ var Player = function (_EventEmitter) {
 			state.fragmentIndex = fragmentIndex;
 
 			// check through all streams to find any cached fragment
-			var fragment = this._manifest.getCachedFragment(fragmentIndex);
+			var loadedFragment = this._manifest.getLoadedFragment(fragmentIndex);
 			var stream = void 0;
 
 			// is there a fragment in the cache
-			if (fragment) {
-				state.fragment = fragment.constructor;
-				stream = fragment.stream;
+			if (loadedFragment) {
+				state.fragment = loadedFragment.constructor;
+				stream = loadedFragment.stream;
 				state.stream = stream.constructor;
 				// Do we have the init fragment for the stream
 				if (stream.isInitialised) {
@@ -1817,26 +1822,26 @@ var Player = function (_EventEmitter) {
 							_this4._checkVideoBuffer();
 						}).catch(this._onError);
 
-						// Does the current SourceController quality match incoming fragment stream quality,
-						// if so then we can add the fragment data to the buffer
-					} else if (this._sourceController.quality === fragment.stream.index) {
-						state.quality = fragment.stream.index;
+						// Does the current SourceController quality match incoming loadedFragment stream quality,
+						// if so then we can add the loadedFragment data to the buffer
+					} else if (this._sourceController.quality === loadedFragment.stream.index) {
+						state.quality = loadedFragment.stream.index;
 						state.switchStreams = false;
-						this._sourceController.appendToBuffer(fragment).then(function () {
+						this._sourceController.appendToBuffer(loadedFragment).then(function () {
 							if (_this4._options.debug) console.log('_checkCachedData COMPLETE');
 
 							_this4._checkVideoBuffer();
 						}).catch(this._onError);
 
 						// If the Fragment quality is different to that of the SourceController then we'll,
-						// switch streams first before appending the fragment data
+						// switch streams first before appending the loadedFragment data
 					} else {
 						//console.log('APPEND DIFFERENT STREAM');
 						state.switchStreams = true;
 						Promise.resolve().then(function () {
 							return _this4._sourceController.appendToBuffer(stream.getFragmentInit());
 						}).then(function () {
-							return _this4._sourceController.appendToBuffer(fragment);
+							return _this4._sourceController.appendToBuffer(loadedFragment);
 						}).then(function () {
 							if (_this4._options.debug) console.log('_checkCachedData COMPLETE');
 
@@ -1871,7 +1876,7 @@ var Player = function (_EventEmitter) {
 					}
 
 					stream = this._manifest.getStream(streamIndex);
-					fragment = stream.getFragment(fragmentIndex);
+					var fragment = stream.getFragment(fragmentIndex);
 
 					if (fragment.loadAttempts > Player.MAX_LOAD_ATTEMPTS) {
 						throw new Error('Unable to load Fragment ' + fragment.url);
@@ -2175,14 +2180,6 @@ var Source = function (_EventEmitter) {
 				// }
 			});
 		}
-
-		// _onUpdateEnd() {
-		// 	console.log('_onUpdateEnd');
-		// 	//@TODO check the buffer and request more data if necessary
-		// 	//this._videoController.checkBuffer();
-		// }
-
-
 	}, {
 		key: '_endStream',
 		value: function _endStream() {
@@ -2246,9 +2243,6 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
 
 
 
-// Minimum fragment lengths that the we aim to keep full before loading another
-var BUFFER_MIN_LENGTH = 2;
-
 var RANGE_START_END_TOLERANCE = 0.05; // Safari and Firefox buffer ranges seem to be out by 0.03, use a tollerance for now, investingate further
 
 
@@ -2264,15 +2258,17 @@ var VideoElement = function (_EventEmitter) {
 	// {Boolean} video element autoplay is always set to false, this property is used replace that
 
 
-	// Event dispatched on time update
-	function VideoElement(videoElement) {
-		var debug = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
+	// HTML Video Element
+	function VideoElement(videoElement, manifest) {
+		var bufferMinLength = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 8;
+		var debug = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : false;
 
 		_classCallCheck(this, VideoElement);
 
 		var _this = _possibleConstructorReturn(this, (VideoElement.__proto__ || Object.getPrototypeOf(VideoElement)).call(this));
 
 		_this._videoElement = null;
+		_this._bufferMinLength = null;
 		_this._autoplay = false;
 		_this._loop = false;
 		_this._hasPlayed = false;
@@ -2282,6 +2278,8 @@ var VideoElement = function (_EventEmitter) {
 
 
 		_this._videoElement = videoElement;
+		_this._manifest = manifest;
+		_this._bufferMinLength = bufferMinLength < manifest.fragmentDuration ? manifest.fragmentDuration : bufferMinLength;
 		_this._debug = debug;
 
 		_this._initVideoElement();
@@ -2296,7 +2294,6 @@ var VideoElement = function (_EventEmitter) {
   * Public access to check buffer
   *
   * @public
-  * @param {Object} manifest The manifest data object
   */
 
 
@@ -2306,13 +2303,16 @@ var VideoElement = function (_EventEmitter) {
 	// {Boolean} video element loop is always set to false, this property is used replace that
 
 
-	// HTML Video Element
+	// Minimum fragment lengths that the we aim to keep full before loading another
+
+
+	// Event dispatched on time update
 
 
 	_createClass(VideoElement, [{
 		key: 'checkBuffer',
-		value: function checkBuffer(manifest) {
-			return this._checkBuffer(manifest);
+		value: function checkBuffer() {
+			return this._checkBuffer();
 		}
 
 		/**
@@ -2491,7 +2491,7 @@ var VideoElement = function (_EventEmitter) {
 			var shouldGetData = true;
 
 			var currentTime = this._videoElement.currentTime;
-			var bufferMinLength = this._videoElement.preload === "auto" ? this._manifest.duration : BUFFER_MIN_LENGTH;
+			var bufferMinLength = this._videoElement.preload === "auto" ? this._manifest.duration : this._bufferMinLength;
 
 			var bufferIndex = this._videoElement.buffered.length;
 			var fragmentDuration = this._manifest.fragmentDuration;
@@ -2540,7 +2540,11 @@ var VideoElement = function (_EventEmitter) {
 					}
 
 					// cancel only if buffer is within the last fragment
-					if (bufferEmptyAtTime > _this2._manifest.duration - fragmentDuration) {
+					// if (bufferEmptyAtTime > this._manifest.duration - fragmentDuration) {
+					// 	shouldGetData = false;
+					// }
+
+					if (bufferEmptyAtTime >= _this2._manifest.duration) {
 						shouldGetData = false;
 					}
 				}
@@ -2638,19 +2642,6 @@ var VideoElement = function (_EventEmitter) {
 		key: 'paused',
 		get: function get() {
 			return this._videoElement.paused;
-		}
-
-		/**
-   * Setter to set the manifest data model
-   *
-   * @public
-   * @param {Object} manifest The manifest data model saved for internal use
-   */
-
-	}, {
-		key: 'manifest',
-		set: function set(manifest) {
-			this._manifest = manifest;
 		}
 
 		/**
