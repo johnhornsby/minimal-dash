@@ -8,9 +8,6 @@
 import EventEmitter from 'wolfy87-eventemitter';
 
 
-// Minimum fragment lengths that the we aim to keep full before loading another
-const BUFFER_MIN_LENGTH = 2;
-
 const RANGE_START_END_TOLERANCE = 0.05; // Safari and Firefox buffer ranges seem to be out by 0.03, use a tollerance for now, investingate further
 
 
@@ -22,6 +19,9 @@ export default class VideoElement extends EventEmitter {
 
 	// HTML Video Element
 	_videoElement = null;
+
+	// Minimum fragment lengths that the we aim to keep full before loading another
+	_bufferMinLength = null;
 
 	// {Boolean} video element autoplay is always set to false, this property is used replace that
 	_autoplay = false;
@@ -38,14 +38,17 @@ export default class VideoElement extends EventEmitter {
 	// flag to indentiy explicity user pausing via this classes public api
 	_userPaused = false;
 
-	_debug = false
+	_debug = false;
 
 
 
-	constructor(videoElement, debug = false) {
+
+	constructor(videoElement, manifest, bufferMinLength = 8, debug = false) {
 		super();
 
 		this._videoElement = videoElement;
+		this._manifest = manifest;
+		this._bufferMinLength = (bufferMinLength < manifest.fragmentDuration) ? manifest.fragmentDuration : bufferMinLength;
 		this._debug = debug;
 
 
@@ -66,10 +69,9 @@ export default class VideoElement extends EventEmitter {
 	 * Public access to check buffer
 	 *
 	 * @public
-	 * @param {Object} manifest The manifest data object
 	 */
-	checkBuffer(manifest) {
-		return this._checkBuffer(manifest);
+	checkBuffer() {
+		return this._checkBuffer();
 	}
 
 
@@ -156,15 +158,6 @@ export default class VideoElement extends EventEmitter {
 	 * @returns {Boolean} the video paused status
 	 */
 	get paused() { return this._videoElement.paused }
-
-
-	/**
-	 * Setter to set the manifest data model
-	 *
-	 * @public
-	 * @param {Object} manifest The manifest data model saved for internal use
-	 */
-	set manifest(manifest) { this._manifest = manifest }
 
 
 	/**
@@ -312,7 +305,7 @@ export default class VideoElement extends EventEmitter {
 		let shouldGetData = true;
 
 		const currentTime = this._videoElement.currentTime;
-		const bufferMinLength = (this._videoElement.preload === "auto") ? this._manifest.duration: BUFFER_MIN_LENGTH;
+		const bufferMinLength = (this._videoElement.preload === "auto") ? this._manifest.duration: this._bufferMinLength;
 
 		let bufferIndex = this._videoElement.buffered.length;
 		const fragmentDuration = this._manifest.fragmentDuration;
@@ -361,7 +354,11 @@ export default class VideoElement extends EventEmitter {
 				}
 
 				// cancel only if buffer is within the last fragment
-				if (bufferEmptyAtTime > this._manifest.duration - fragmentDuration) {
+				// if (bufferEmptyAtTime > this._manifest.duration - fragmentDuration) {
+				// 	shouldGetData = false;
+				// }
+
+				if (bufferEmptyAtTime >= this._manifest.duration) {
 					shouldGetData = false;
 				}
 			}

@@ -187,9 +187,9 @@ class Player extends EventEmitter {
 	 * @private
 	 */
 	_onManifestReady() {
+		const bufferMinLength = 10;
 		// Create VideoController that will listen to the video element
-		this._videoController = new VideoController(this._videoElement, this._options.debug);
-		this._videoController.manifest = this._manifest;
+		this._videoController = new VideoController(this._videoElement, this._manifest, bufferMinLength, this._options.debug);
 		this._videoController.on(VideoController.EVENT_TIME_UPDATE, this._onTimeUpdate);
 
 		// Create SourceController that controls the MediaSource

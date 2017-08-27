@@ -186,13 +186,6 @@ export default class Source extends EventEmitter {
 	}
 
 
-	// _onUpdateEnd() {
-	// 	console.log('_onUpdateEnd');
-	// 	//@TODO check the buffer and request more data if necessary
-	// 	//this._videoController.checkBuffer();
-	// }
-
-
 	_endStream() {
 		if (this._mediaSource.readyState !== 'open') {
 			this._onError(new Error("MediaSource readyState is not open, can't end steam"));
