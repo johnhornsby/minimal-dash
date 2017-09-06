@@ -403,4 +403,4 @@ class Player extends EventEmitter {
 } 
 
 
-export default Player;
+export { Player };

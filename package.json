@@ -2,7 +2,7 @@
   "name": "minimal-dash",
   "version": "0.0.1",
   "description": "Minimal MPEG Dash Video Player",
-  "main": "dist/minimal-dash",
+  "main": "dist/minimal-dash.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "node_modules/.bin/webpack"

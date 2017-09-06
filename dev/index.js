@@ -1,5 +1,5 @@
 import 'babel-polyfill';
-import Player from '../src//player';
+import { Player } from '../dist/minimal-dash';
 import BufferOutput from '../src/debug/buffer-output';
 
 
