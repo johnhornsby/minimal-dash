@@ -1563,7 +1563,8 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
 
 var DEFAULT_OPTIONS = {
 	initialStreamIndex: undefined,
-	debug: false
+	debug: false,
+	bufferMinLength: 10
 };
 
 var Player = function (_EventEmitter) {
@@ -1715,9 +1716,8 @@ var Player = function (_EventEmitter) {
 	}, {
 		key: '_onManifestReady',
 		value: function _onManifestReady() {
-			var bufferMinLength = 10;
 			// Create VideoController that will listen to the video element
-			this._videoController = new __WEBPACK_IMPORTED_MODULE_1__controllers_video_element__["a" /* default */](this._videoElement, this._manifest, bufferMinLength, this._options.debug);
+			this._videoController = new __WEBPACK_IMPORTED_MODULE_1__controllers_video_element__["a" /* default */](this._videoElement, this._manifest, this._options.bufferMinLength, this._options.debug);
 			this._videoController.on(__WEBPACK_IMPORTED_MODULE_1__controllers_video_element__["a" /* default */].EVENT_TIME_UPDATE, this._onTimeUpdate);
 
 			// Create SourceController that controls the MediaSource
