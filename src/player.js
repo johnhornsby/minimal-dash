@@ -8,6 +8,7 @@ import SourceController from './controllers/source';
 import BandwidthManager from './managers/bandwidth';
 import EventEmitter from './util/event-emitter';
 import Fragment from './models/fragment';
+import BufferOutput from './debug/buffer-output';
 
 
 const DEFAULT_OPTIONS = {
@@ -403,4 +404,4 @@ class Player extends EventEmitter {
 } 
 
 
-export { Player };
+export { Player, BufferOutput };

@@ -73,7 +73,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/ 	__webpack_require__.p = "";
 
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 12);
+/******/ 	return __webpack_require__(__webpack_require__.s = 13);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -718,7 +718,7 @@ var __WEBPACK_AMD_DEFINE_RESULT__;/*!
 
 "use strict";
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__load__ = __webpack_require__(3);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__util_stats__ = __webpack_require__(11);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__util_stats__ = __webpack_require__(5);
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -1010,7 +1010,7 @@ var BandwidthManager = function () {
 "use strict";
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_wolfy87_eventemitter__ = __webpack_require__(1);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_wolfy87_eventemitter___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_wolfy87_eventemitter__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__util_fetch_xhr2__ = __webpack_require__(10);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__util_fetch_xhr2__ = __webpack_require__(12);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__models_manifest__ = __webpack_require__(4);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__bandwidth__ = __webpack_require__(2);
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -1320,7 +1320,7 @@ LoadManager.XHR_TIMEOUT = 10000;
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__stream__ = __webpack_require__(8);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__stream__ = __webpack_require__(10);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__fragment__ = __webpack_require__(0);
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
@@ -1534,13 +1534,193 @@ var Manifest = function () {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (immutable) */ __webpack_exports__["a"] = removeSpikes;
+/* unused harmony export getMedian */
+/**
+ * Takes an array of numbers and pucks out any odd spike values that don't
+ * represent the typical varience within the typical range of values
+ */
+function removeSpikes(values) {
+	var tolerance = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
+
+
+	// nothing to clip
+	if (values.length < 2) {
+		return values;
+	}
+
+	// Utility function to return the sum variance against a defined value within an array of values
+	function getSumVariancesOfIndex(values, index) {
+		var varianceSum = 0;
+
+		for (var i = 0; i < values.length; i++) {
+			if (i !== index) {
+				varianceSum += Math.abs(values[index] - values[i]);
+			}
+		}
+
+		return varianceSum;
+	}
+
+	// Utility function to return the value that varies the least relative to the other values
+	function getValueOfLeastVariance(values) {
+		var minSum = Number.POSITIVE_INFINITY;
+		var currentSum = void 0;
+		var minIndex = -1;
+
+		for (var i = 0; i < values.length; i++) {
+			currentSum = getSumVariancesOfIndex(values, i);
+			if (currentSum < minSum) {
+				minSum = currentSum;
+				minIndex = i;
+			}
+		}
+
+		return values[minIndex];
+	}
+
+	// Utility function to return the area of the variance against a possible max
+	function getAreaPercentage(values) {
+
+		var area = 0;
+		var max = values.reduce(function (previous, next) {
+			return Math.max(previous, next);
+		});
+		var min = values.reduce(function (previous, next) {
+			return Math.min(previous, next);
+		}, max);
+
+		var difference = max - min;
+		var maxArea = difference * (values.length - 1);
+
+		for (var i = 0; i < values.length; i++) {
+			area += values[i] - min;
+		}
+
+		return area / maxArea;
+	}
+
+	// first off remove nulls 
+	values = values.filter(function (value) {
+		return value !== null && value !== undefined && value !== Number.POSITIVE_INFINITY && isNaN(value) === false;
+	});
+
+	// initial sort to begin to analyse the variance between the values
+	var sortedValues = values.sort(function (a, b) {
+		return a - b;
+	});
+	// we attempt to find a value that is more similar to all the others, we used to use the median here
+	var median = getValueOfLeastVariance(values);
+
+	// now log all variances from median
+	var variances = [];
+
+	for (var i = 0; i < sortedValues.length; i++) {
+		variances.push({
+			index: i,
+			value: Math.abs(median - sortedValues[i])
+		});
+	}
+
+	// order the variances
+	variances = variances.sort(function (a, b) {
+		return a.value - b.value;
+	});
+
+	// calculate area of variance, imagine a graph where vairance is ploted against the number of variants
+	// a 100% proportional line from bottom left to top right would signify a 100% distributed set of variences,
+	// ergo 50% area would signify no spikes and all values equally distrubuted.
+	// a large area signifies a wide range of variance across values, a small variance signifies a general
+	// small variance across typical values.
+	var area = 0;
+
+	// calculate max amount of variance
+	if (variances[variances.length - 1] === undefined) {
+		debugger;
+	}
+	var maxValue = variances[variances.length - 1].value;
+	var clipPercentage = getAreaPercentage(variances.map(function (variance) {
+		return variance.value;
+	}));
+	var toleranceAdjustment = (1 - clipPercentage) * tolerance;
+	var clipPercentageToleranceAdjusted = clipPercentage + toleranceAdjustment;
+	var maxAmountOfVarianceAllowed = maxValue * clipPercentageToleranceAdjusted;
+
+	// use only values that are within the max variance
+	var clippedValues = [];
+	var _iteratorNormalCompletion = true;
+	var _didIteratorError = false;
+	var _iteratorError = undefined;
+
+	try {
+		for (var _iterator = variances[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+			var variance = _step.value;
+
+			if (variance.value <= maxAmountOfVarianceAllowed) {
+				clippedValues.push(sortedValues[variance.index]);
+			}
+		}
+
+		// if all values are clipped then return the median
+	} catch (err) {
+		_didIteratorError = true;
+		_iteratorError = err;
+	} finally {
+		try {
+			if (!_iteratorNormalCompletion && _iterator.return) {
+				_iterator.return();
+			}
+		} finally {
+			if (_didIteratorError) {
+				throw _iteratorError;
+			}
+		}
+	}
+
+	if (clippedValues.length === 0) {
+		return [median];
+	}
+
+	clippedValues = clippedValues.sort(function (a, b) {
+		return a - b;
+	});
+
+	return clippedValues;
+}
+
+function getMedian(sortedValues) {
+	var startIndex = Math.floor(sortedValues.length / 2) - 1;
+	var endIndex = Math.ceil(sortedValues.length / 2) - 1;
+
+	if (sortedValues.length === 0) {
+		return null;
+	}
+
+	if (sortedValues.length === 1) {
+		return sortedValues[0];
+	}
+
+	if (startIndex === endIndex) {
+		return sortedValues[startIndex];
+	}
+
+	return sortedValues[startIndex] + (sortedValues[endIndex] - sortedValues[startIndex]) / 2;
+}
+
+/***/ }),
+/* 6 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__managers_load__ = __webpack_require__(3);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__controllers_video_element__ = __webpack_require__(7);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__controllers_source__ = __webpack_require__(6);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__controllers_video_element__ = __webpack_require__(8);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__controllers_source__ = __webpack_require__(7);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__managers_bandwidth__ = __webpack_require__(2);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__util_event_emitter__ = __webpack_require__(9);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__util_event_emitter__ = __webpack_require__(11);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__models_fragment__ = __webpack_require__(0);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__debug_buffer_output__ = __webpack_require__(9);
+/* harmony reexport (binding) */ __webpack_require__.d(__webpack_exports__, "BufferOutput", function() { return __WEBPACK_IMPORTED_MODULE_6__debug_buffer_output__["a"]; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Player", function() { return Player; });
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
@@ -1553,6 +1733,7 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
 /** 
  * Main controller class for the Minimal Dash Player.
  */
+
 
 
 
@@ -1987,7 +2168,7 @@ Player.MAX_LOAD_ATTEMPTS = 3;
 
 
 /***/ }),
-/* 6 */
+/* 7 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -2221,7 +2402,7 @@ Source.EVENT_SOURCE_OPEN = 'eventSourceOpen';
 /* harmony default export */ __webpack_exports__["a"] = Source;
 
 /***/ }),
-/* 7 */
+/* 8 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -2666,7 +2847,570 @@ VideoElement.EVENT_TIME_UPDATE = 'eventTimeUpdate';
 /* harmony default export */ __webpack_exports__["a"] = VideoElement;
 
 /***/ }),
-/* 8 */
+/* 9 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__models_fragment__ = __webpack_require__(0);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__util_stats__ = __webpack_require__(5);
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+
+
+
+var BufferOutput = function () {
+	function BufferOutput(player, video, canvas) {
+		_classCallCheck(this, BufferOutput);
+
+		this._canvas = null;
+		this._ctx = null;
+		this._video = null;
+		this._manifest = null;
+		this._columnWidths = null;
+
+
+		this._canvas = canvas;
+
+		this._video = video;
+
+		this._init();
+	}
+
+	/*____________________________________________
+ 	Public
+ _____________________________________________*/
+
+	_createClass(BufferOutput, [{
+		key: 'draw',
+		value: function draw() {
+			this._draw();
+		}
+	}, {
+		key: '_init',
+
+
+		/*____________________________________________
+  	Private 
+  _____________________________________________*/
+		value: function _init() {
+			this._bind();
+			window.addEventListener('resize', this._onResize);
+			this._ctx = this._canvas.getContext('2d');
+			this._video.addEventListener('mousemove', this._onMouseMove);
+		}
+	}, {
+		key: '_bind',
+		value: function _bind() {
+			this._onResize = this._onResize.bind(this);
+			this._onMouseMove = this._onMouseMove.bind(this);
+		}
+	}, {
+		key: '_onResize',
+		value: function _onResize(event) {
+			this._layout();
+			this._columnWidths = this._getColumnWidths(this._manifest.numberOfFragments);
+			this._draw();
+		}
+	}, {
+		key: '_onMouseMove',
+		value: function _onMouseMove(event) {
+			var mouseX = event.clientX;
+			var mouseY = event.clientY;
+			if (this._manifest && this._columnWidths.length > 0) {
+				var fragmentIndex = this._columnWidths.findIndex(function (colData) {
+					return mouseX >= colData.x && mouseX <= colData.r;
+				});
+				var fragment = void 0;
+				if (fragmentIndex > -1) {
+					fragment = this._getLoadedFragments()[fragmentIndex];
+
+					if (fragment !== undefined) {
+						this._drawBandwidthVariances(this._ctx, mouseX, mouseY, fragment.loadData);
+					}
+				}
+			}
+		}
+	}, {
+		key: '_drawBandwidthVariances',
+		value: function _drawBandwidthVariances(ctx, screenX, screenY, loadData) {
+			this._draw();
+			var w = 100;
+			var h = 100;
+			var area = 0;
+
+			var bandwidths = loadData.range.all.sort(function (a, b) {
+				return a - b;
+			});
+
+			var maxBandwidth = bandwidths[bandwidths.length - 1];
+			var minBandwidth = bandwidths[0];
+
+			var bandWidthDifference = maxBandwidth - minBandwidth;
+			var xModifer = w / (bandwidths.length - 1);
+
+			// Draw Background
+			ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+			ctx.fillRect(screenX, screenY, 100, 100);
+
+			// Draw Area
+			ctx.fillStyle = "rgba(255, 255, 255, 1)";
+			ctx.beginPath();
+			ctx.moveTo(screenX + 0, screenY + h); // bottom left
+
+			function yMod(bandwidth) {
+				if (bandWidthDifference === 0) return 0;
+				return (bandwidth - minBandwidth) / bandWidthDifference * h;
+			}
+
+			for (var i = 0; i < bandwidths.length; i++) {
+				var y = yMod(bandwidths[i]);
+				var yInvert = h - y;
+				var x = i * xModifer;
+
+				ctx.lineTo(screenX + x, screenY + yInvert);
+			}
+
+			ctx.lineTo(screenX + w, screenY + h);
+			ctx.lineTo(screenX + w, screenY + h);
+			ctx.closePath();
+			ctx.fill();
+
+			// Draw Clip Line
+			var areaPercentage = this._getAreaPercentage(bandwidths);
+
+			// Render the clip line
+			ctx.fillStyle = "#FF0000";
+			ctx.fillRect(screenX, screenY + (h - areaPercentage * h), w, 1);
+		}
+	}, {
+		key: '_getAreaPercentage',
+		value: function _getAreaPercentage(values) {
+
+			var area = 0;
+			var max = values.reduce(function (previous, next) {
+				return Math.max(previous, next);
+			});
+			var min = values.reduce(function (previous, next) {
+				return Math.min(previous, next);
+			}, max);
+
+			var difference = max - min;
+			var maxArea = difference * (values.length - 1);
+
+			for (var i = 0; i < values.length; i++) {
+				area += values[i] - min;
+			}
+
+			return area / maxArea;
+		}
+	}, {
+		key: '_layout',
+		value: function _layout() {
+			var rowHeight = 10;
+
+			this._canvas.height = this._video.clientHeight;
+			this._canvas.width = this._video.clientWidth;
+		}
+	}, {
+		key: '_draw',
+		value: function _draw() {
+			if (this._canvas.width !== this._video.clientWidth || this._canvas.height !== this._video.clientHeight) {
+				this._layout();
+			}
+
+			var manifest = this._manifest;
+			var margin = 20;
+			var w = this._canvas.width - margin * 2;
+			var h = this._canvas.height - margin * 2;
+			var x = margin;
+			var y = margin;
+
+			this._ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
+
+			var fragmentsBottom = this._drawFragments(this._columnWidths, x, y, w, h);
+
+			this._drawPlayhead(x, y, w, h);
+
+			this._drawBandwidth(this._columnWidths, x, fragmentsBottom + margin, w, h - fragmentsBottom);
+		}
+	}, {
+		key: '_getColumnWidths',
+		value: function _getColumnWidths(columns) {
+			var margin = 20;
+			var gutter = 1;
+			var w = this._canvas.width - margin * 2;
+			var decrementedRemainder = 0;
+			var col = 0;
+			var colWidth = 0;
+			var colWidths = [];
+			// create column widths array
+			var colWidthPlusGutter = Math.floor((w + gutter) / columns);
+			// calculate the remaining gap to divide up to ensure nice fit across full width
+			var remainder = w - (colWidthPlusGutter * columns - gutter);
+
+			decrementedRemainder = remainder;
+			col = margin;
+
+			for (var i = 0; i < columns; i++) {
+				colWidth = colWidthPlusGutter - gutter;
+
+				// supliment column width from reminder until gone
+				if (decrementedRemainder > 0) {
+					colWidth += 1;
+					decrementedRemainder -= 1;
+				}
+
+				colWidths.push({
+					x: col,
+					w: colWidth,
+					r: col + colWidth + gutter
+				});
+
+				col += colWidth + gutter;
+			}
+
+			return colWidths;
+		}
+	}, {
+		key: '_getLoadedFragments',
+		value: function _getLoadedFragments() {
+			var manifest = this._manifest;
+			var loadedFragments = [];
+			var fragment = void 0;
+			for (var i = 0; i < manifest.numberOfFragments; i++) {
+				for (var s = 0; s < manifest.numberOfStreams; s++) {
+					fragment = manifest.getFragment(s, i);
+					if (fragment.status === __WEBPACK_IMPORTED_MODULE_0__models_fragment__["a" /* default */].status.LOADED) {
+						loadedFragments.push(fragment);
+						break;
+					}
+				}
+			}
+
+			return loadedFragments;
+		}
+	}, {
+		key: '_drawFragments',
+		value: function _drawFragments(colWidths, x, y, w, h) {
+			var manifest = this._manifest;
+			var ctx = this._ctx;
+			var row = y;
+			var rowHeight = 10;
+			var gutter = 1;
+			var fIdx = 0;
+
+			var _iteratorNormalCompletion = true;
+			var _didIteratorError = false;
+			var _iteratorError = undefined;
+
+			try {
+				for (var _iterator = manifest[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+					var stream = _step.value;
+
+					fIdx = 0;
+
+					var _iteratorNormalCompletion2 = true;
+					var _didIteratorError2 = false;
+					var _iteratorError2 = undefined;
+
+					try {
+						for (var _iterator2 = stream[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+							var fragment = _step2.value;
+
+
+							this._drawBox(colWidths[fIdx].x, row, colWidths[fIdx].w, rowHeight, fragment, ctx);
+
+							fIdx += 1;
+						}
+					} catch (err) {
+						_didIteratorError2 = true;
+						_iteratorError2 = err;
+					} finally {
+						try {
+							if (!_iteratorNormalCompletion2 && _iterator2.return) {
+								_iterator2.return();
+							}
+						} finally {
+							if (_didIteratorError2) {
+								throw _iteratorError2;
+							}
+						}
+					}
+
+					row += rowHeight + gutter;
+				}
+			} catch (err) {
+				_didIteratorError = true;
+				_iteratorError = err;
+			} finally {
+				try {
+					if (!_iteratorNormalCompletion && _iterator.return) {
+						_iterator.return();
+					}
+				} finally {
+					if (_didIteratorError) {
+						throw _iteratorError;
+					}
+				}
+			}
+
+			return row;
+		}
+	}, {
+		key: '_drawPlayhead',
+		value: function _drawPlayhead(x, y, w, h) {
+			var manifest = this._manifest;
+			var ctx = this._ctx;
+			var rowHeight = 10;
+			var gutter = 1;
+			var rows = manifest.numberOfStreams;
+			var playheadX = Math.round(x + this._video.currentTime / manifest.duration * w);
+			ctx.fillStyle = "#FF0000";
+			ctx.fillRect(playheadX, y, 1, rows * rowHeight + (rows + gutter) - 1);
+		}
+	}, {
+		key: '_drawBandwidth',
+		value: function _drawBandwidth(colWidths, x, y, w, h) {
+			var manifest = this._manifest;
+			var ctx = this._ctx;
+			var fIdx = 0;
+
+			ctx.clearRect(x, y, w, h);
+			ctx.beginPath();
+			ctx.lineWidth = "1";
+			ctx.strokeStyle = "white";
+			ctx.rect(x + 0.5, y + 0.5, w - 1, h - 1);
+			ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+			ctx.fill();
+			ctx.stroke();
+
+			ctx.font = "10px Arial";
+
+			var loadedFragments = this._getLoadedFragments();
+
+			if (loadedFragments.length === 0) return;
+
+			var bandwidths = loadedFragments.map(function (fragment) {
+				return fragment.loadData.bandwidth;
+			});
+			var ranges = loadedFragments.map(function (fragment) {
+				return fragment.loadData.range;
+			});
+			var estimatedBandwidths = loadedFragments.map(function (fragment) {
+				return fragment.loadData.estimatedBandwidth;
+			});
+
+			var maxBandwidth = bandwidths.reduce(function (previous, next) {
+				return Math.max(previous, next);
+			});
+
+			maxBandwidth *= 1.1;
+
+			if (isFinite(maxBandwidth) === false) {
+				debugger;
+			}
+			if (isNaN(maxBandwidth)) {
+				debugger;
+			}
+
+			var maxBandwidthString = maxBandwidth / 1000000 + ' mbits / s';
+
+			// Draw Estimated Bandwidth
+			ctx.beginPath();
+			ctx.lineWidth = "1";
+			ctx.strokeStyle = "red";
+			ctx.moveTo(0, 0);
+			fIdx = 0;
+
+			var _iteratorNormalCompletion3 = true;
+			var _didIteratorError3 = false;
+			var _iteratorError3 = undefined;
+
+			try {
+				for (var _iterator3 = estimatedBandwidths[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+					var _bandwidth2 = _step3.value;
+
+
+					var _x3 = colWidths[fIdx].x + colWidths[fIdx].w / 2;
+					var _row2 = y + (h - _bandwidth2 / maxBandwidth * h);
+
+					if (fIdx === 0) {
+						ctx.moveTo(_x3, _row2);
+					}
+
+					ctx.lineTo(_x3, _row2);
+
+					fIdx += 1;
+				}
+			} catch (err) {
+				_didIteratorError3 = true;
+				_iteratorError3 = err;
+			} finally {
+				try {
+					if (!_iteratorNormalCompletion3 && _iterator3.return) {
+						_iterator3.return();
+					}
+				} finally {
+					if (_didIteratorError3) {
+						throw _iteratorError3;
+					}
+				}
+			}
+
+			ctx.stroke();
+
+			// Draw Bandwidth Range
+			ctx.fillStyle = "rgba(255, 0, 0, 0.5)";
+			ctx.beginPath();
+			ctx.moveTo(0, 0);
+
+			for (var i = 0; i < ranges.length; i++) {
+				var bandwidth = ranges[i].start;
+				var _x = colWidths[i].x + colWidths[i].w / 2;
+				var row = y + (h - bandwidth / maxBandwidth * h);
+
+				if (i === 0) {
+					ctx.moveTo(_x, row);
+				}
+
+				ctx.lineTo(_x, row);
+			}
+
+			for (var _i = ranges.length - 1; _i > -1; _i--) {
+				var _bandwidth = ranges[_i].end;
+				var _x2 = colWidths[_i].x + colWidths[_i].w / 2;
+				var _row = y + (h - _bandwidth / maxBandwidth * h);
+
+				ctx.lineTo(_x2, _row);
+			}
+
+			ctx.closePath();
+			ctx.fill();
+
+			// Draw Points and Numbers
+			ctx.fillStyle = "white";
+			ctx.fillText(maxBandwidthString, x + 10, y + 20);
+			fIdx = 0;
+
+			var _iteratorNormalCompletion4 = true;
+			var _didIteratorError4 = false;
+			var _iteratorError4 = undefined;
+
+			try {
+				for (var _iterator4 = bandwidths[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
+					var _bandwidth3 = _step4.value;
+
+					var _row3 = y + (h - _bandwidth3 / maxBandwidth * h);
+
+					var _x4 = colWidths[fIdx].x + colWidths[fIdx].w / 2;
+
+					ctx.beginPath();
+
+					ctx.arc(_x4, _row3, 1, 0, 2 * Math.PI, false);
+					ctx.fillText(fIdx + 1, _x4 + 10, _row3);
+					ctx.fillStyle = 'white';
+					ctx.fill();
+
+					fIdx += 1;
+				}
+
+				// Draw Load Speed
+			} catch (err) {
+				_didIteratorError4 = true;
+				_iteratorError4 = err;
+			} finally {
+				try {
+					if (!_iteratorNormalCompletion4 && _iterator4.return) {
+						_iterator4.return();
+					}
+				} finally {
+					if (_didIteratorError4) {
+						throw _iteratorError4;
+					}
+				}
+			}
+
+			ctx.beginPath();
+			ctx.lineWidth = "1";
+			ctx.strokeStyle = "white";
+			ctx.moveTo(0, 0);
+			fIdx = 0;
+
+			var _iteratorNormalCompletion5 = true;
+			var _didIteratorError5 = false;
+			var _iteratorError5 = undefined;
+
+			try {
+				for (var _iterator5 = bandwidths[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
+					var _bandwidth4 = _step5.value;
+
+
+					var _x5 = colWidths[fIdx].x + colWidths[fIdx].w / 2;
+					var _row4 = y + (h - _bandwidth4 / maxBandwidth * h);
+
+					if (fIdx === 0) {
+						ctx.moveTo(_x5, _row4);
+					}
+
+					ctx.lineTo(_x5, _row4);
+
+					fIdx += 1;
+				}
+			} catch (err) {
+				_didIteratorError5 = true;
+				_iteratorError5 = err;
+			} finally {
+				try {
+					if (!_iteratorNormalCompletion5 && _iterator5.return) {
+						_iterator5.return();
+					}
+				} finally {
+					if (_didIteratorError5) {
+						throw _iteratorError5;
+					}
+				}
+			}
+
+			ctx.stroke();
+		}
+	}, {
+		key: '_drawBox',
+		value: function _drawBox(col, row, colWidth, rowHeight, fragment, ctx) {
+			switch (fragment.status) {
+				case 'empty':
+					ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+					break;
+				case 'loading':
+					ctx.fillStyle = "#FF0000";
+					break;
+				case 'loaded':
+					if (fragment.loadData.isCached) {
+						ctx.fillStyle = "rgba(128, 128, 128, 1)";
+					} else {
+						ctx.fillStyle = "rgba(255, 255, 255, 1)";
+					}
+
+					break;
+			}
+			ctx.fillRect(col, row, colWidth, rowHeight);
+		}
+	}, {
+		key: 'manifest',
+		set: function set(manifest) {
+			this._manifest = manifest;
+			this._onResize();
+		}
+	}]);
+
+	return BufferOutput;
+}();
+
+/* harmony default export */ __webpack_exports__["a"] = BufferOutput;
+
+/***/ }),
+/* 10 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -2838,7 +3582,7 @@ var Stream = function () {
 /* harmony default export */ __webpack_exports__["a"] = Stream;
 
 /***/ }),
-/* 9 */
+/* 11 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -2918,7 +3662,7 @@ var EventEmitter = function () {
 /* harmony default export */ __webpack_exports__["a"] = EventEmitter;
 
 /***/ }),
-/* 10 */
+/* 12 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -3073,188 +3817,10 @@ var FetchXHR2 = function () {
 /* unused harmony default export */ var _unused_webpack_default_export = FetchXHR2;
 
 /***/ }),
-/* 11 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony export (immutable) */ __webpack_exports__["a"] = removeSpikes;
-/* unused harmony export getMedian */
-/**
- * Takes an array of numbers and pucks out any odd spike values that don't
- * represent the typical varience within the typical range of values
- */
-function removeSpikes(values) {
-	var tolerance = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
-
-
-	// nothing to clip
-	if (values.length < 2) {
-		return values;
-	}
-
-	// Utility function to return the sum variance against a defined value within an array of values
-	function getSumVariancesOfIndex(values, index) {
-		var varianceSum = 0;
-
-		for (var i = 0; i < values.length; i++) {
-			if (i !== index) {
-				varianceSum += Math.abs(values[index] - values[i]);
-			}
-		}
-
-		return varianceSum;
-	}
-
-	// Utility function to return the value that varies the least relative to the other values
-	function getValueOfLeastVariance(values) {
-		var minSum = Number.POSITIVE_INFINITY;
-		var currentSum = void 0;
-		var minIndex = -1;
-
-		for (var i = 0; i < values.length; i++) {
-			currentSum = getSumVariancesOfIndex(values, i);
-			if (currentSum < minSum) {
-				minSum = currentSum;
-				minIndex = i;
-			}
-		}
-
-		return values[minIndex];
-	}
-
-	// Utility function to return the area of the variance against a possible max
-	function getAreaPercentage(values) {
-
-		var area = 0;
-		var max = values.reduce(function (previous, next) {
-			return Math.max(previous, next);
-		});
-		var min = values.reduce(function (previous, next) {
-			return Math.min(previous, next);
-		}, max);
-
-		var difference = max - min;
-		var maxArea = difference * (values.length - 1);
-
-		for (var i = 0; i < values.length; i++) {
-			area += values[i] - min;
-		}
-
-		return area / maxArea;
-	}
-
-	// first off remove nulls 
-	values = values.filter(function (value) {
-		return value !== null && value !== undefined && value !== Number.POSITIVE_INFINITY && isNaN(value) === false;
-	});
-
-	// initial sort to begin to analyse the variance between the values
-	var sortedValues = values.sort(function (a, b) {
-		return a - b;
-	});
-	// we attempt to find a value that is more similar to all the others, we used to use the median here
-	var median = getValueOfLeastVariance(values);
-
-	// now log all variances from median
-	var variances = [];
-
-	for (var i = 0; i < sortedValues.length; i++) {
-		variances.push({
-			index: i,
-			value: Math.abs(median - sortedValues[i])
-		});
-	}
-
-	// order the variances
-	variances = variances.sort(function (a, b) {
-		return a.value - b.value;
-	});
-
-	// calculate area of variance, imagine a graph where vairance is ploted against the number of variants
-	// a 100% proportional line from bottom left to top right would signify a 100% distributed set of variences,
-	// ergo 50% area would signify no spikes and all values equally distrubuted.
-	// a large area signifies a wide range of variance across values, a small variance signifies a general
-	// small variance across typical values.
-	var area = 0;
-
-	// calculate max amount of variance
-	if (variances[variances.length - 1] === undefined) {
-		debugger;
-	}
-	var maxValue = variances[variances.length - 1].value;
-	var clipPercentage = getAreaPercentage(variances.map(function (variance) {
-		return variance.value;
-	}));
-	var toleranceAdjustment = (1 - clipPercentage) * tolerance;
-	var clipPercentageToleranceAdjusted = clipPercentage + toleranceAdjustment;
-	var maxAmountOfVarianceAllowed = maxValue * clipPercentageToleranceAdjusted;
-
-	// use only values that are within the max variance
-	var clippedValues = [];
-	var _iteratorNormalCompletion = true;
-	var _didIteratorError = false;
-	var _iteratorError = undefined;
-
-	try {
-		for (var _iterator = variances[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-			var variance = _step.value;
-
-			if (variance.value <= maxAmountOfVarianceAllowed) {
-				clippedValues.push(sortedValues[variance.index]);
-			}
-		}
-
-		// if all values are clipped then return the median
-	} catch (err) {
-		_didIteratorError = true;
-		_iteratorError = err;
-	} finally {
-		try {
-			if (!_iteratorNormalCompletion && _iterator.return) {
-				_iterator.return();
-			}
-		} finally {
-			if (_didIteratorError) {
-				throw _iteratorError;
-			}
-		}
-	}
-
-	if (clippedValues.length === 0) {
-		return [median];
-	}
-
-	clippedValues = clippedValues.sort(function (a, b) {
-		return a - b;
-	});
-
-	return clippedValues;
-}
-
-function getMedian(sortedValues) {
-	var startIndex = Math.floor(sortedValues.length / 2) - 1;
-	var endIndex = Math.ceil(sortedValues.length / 2) - 1;
-
-	if (sortedValues.length === 0) {
-		return null;
-	}
-
-	if (sortedValues.length === 1) {
-		return sortedValues[0];
-	}
-
-	if (startIndex === endIndex) {
-		return sortedValues[startIndex];
-	}
-
-	return sortedValues[startIndex] + (sortedValues[endIndex] - sortedValues[startIndex]) / 2;
-}
-
-/***/ }),
-/* 12 */
+/* 13 */
 /***/ (function(module, exports, __webpack_require__) {
 
-module.exports = __webpack_require__(5);
+module.exports = __webpack_require__(6);
 
 
 /***/ })
