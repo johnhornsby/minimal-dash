@@ -736,7 +736,7 @@ var MEASURE_VALID_READINGS = 10; // bandwidth readings
 
 var INITIAL_BANDWIDTH = 500000; // 0.5 mb / s
 
-var CLIP_TOLERANCE = 0.95; // value between 0 and 1
+var CLIP_TOLERANCE = 0.95; // value between 0 and 1, 1 being maximum tollerant of peaks
 
 var CACHED_THRESHHOLD = 32; // ms loading within threshold to determine a cached fragment. 
 
@@ -963,7 +963,7 @@ var BandwidthManager = function () {
 		value: function _selectBandwidth(bandwidths) {
 			// used to take mean or median here, however lets be a little more pesimistic and ensure a lower value
 			// use the value that is 25% between the min and max
-			return bandwidths[0] + (bandwidths[bandwidths.length - 1] - bandwidths[0]) * 0.25;
+			return bandwidths[0] + (bandwidths[bandwidths.length - 1] - bandwidths[0]) * 0.75;
 		}
 	}, {
 		key: '_getQuality',
@@ -1722,6 +1722,8 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__debug_buffer_output__ = __webpack_require__(9);
 /* harmony reexport (binding) */ __webpack_require__.d(__webpack_exports__, "BufferOutput", function() { return __WEBPACK_IMPORTED_MODULE_6__debug_buffer_output__["a"]; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Player", function() { return Player; });
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -1744,6 +1746,7 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
 
 var DEFAULT_OPTIONS = {
 	initialStreamIndex: undefined,
+	forceStreamIndex: undefined,
 	debug: false,
 	bufferMinLength: 10
 };
@@ -1769,7 +1772,7 @@ var Player = function (_EventEmitter) {
 
 		_this._videoElement = videoElement;
 
-		_this._options = options || DEFAULT_OPTIONS;
+		_this._options = _extends({}, DEFAULT_OPTIONS, options);
 
 		_this._initPlayer(manifestURL);
 		return _this;
@@ -2055,6 +2058,10 @@ var Player = function (_EventEmitter) {
 					// override quality of initial stream it set
 					if (fragmentIndex === 0 && this._options.initialStreamIndex !== undefined) {
 						streamIndex = this._options.initialStreamIndex;
+					}
+
+					if (this._options.forceStreamIndex !== undefined) {
+						streamIndex = this._options.forceStreamIndex;
 					}
 
 					stream = this._manifest.getStream(streamIndex);

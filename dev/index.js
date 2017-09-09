@@ -1,5 +1,5 @@
 import 'babel-polyfill';
-import { Player } from '../dist/minimal-dash';
+import { Player } from '../src/player';
 import BufferOutput from '../src/debug/buffer-output';
 
 
@@ -28,10 +28,12 @@ class Main {
 
 		url = "https://s3-eu-west-1.amazonaws.com/johnhornsby.me/projects/verusmodus/preview/streams/stream.mpd";
 
-		url = "https://bitmovin-a.akamaihd.net/content/MI201109210084_1/mpds/f08e80da-bf1d-4e3d-8899-f0f6155f6efa.mpd";
+		// url = "https://bitmovin-a.akamaihd.net/content/MI201109210084_1/mpds/f08e80da-bf1d-4e3d-8899-f0f6155f6efa.mpd";
 		const player = new Player(videoElement, url, {
-			initialStreamIndex: 3,
-			debug: true
+			initialStreamIndex: 0,
+			forceStreamIndex: 0,
+			debug: true,
+			bufferMinLength: 4
 		});
 
 		// bufferOutput is simply used to debug at the moment

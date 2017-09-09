@@ -12,7 +12,7 @@ const MEASURE_VALID_READINGS = 10; // bandwidth readings
 
 const INITIAL_BANDWIDTH = 500000; // 0.5 mb / s
 
-const CLIP_TOLERANCE = 0.95; // value between 0 and 1
+const CLIP_TOLERANCE = 0.95; // value between 0 and 1, 1 being maximum tollerant of peaks
 
 const CACHED_THRESHHOLD = 32; // ms loading within threshold to determine a cached fragment. 
 
@@ -215,7 +215,7 @@ class BandwidthManager {
 	_selectBandwidth(bandwidths) {
 		// used to take mean or median here, however lets be a little more pesimistic and ensure a lower value
 		// use the value that is 25% between the min and max
-		return bandwidths[0] + ((bandwidths[bandwidths.length - 1] - bandwidths[0]) * 0.25);
+		return bandwidths[0] + ((bandwidths[bandwidths.length - 1] - bandwidths[0]) * 0.75);
 	}
 
 

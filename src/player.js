@@ -13,6 +13,7 @@ import BufferOutput from './debug/buffer-output';
 
 const DEFAULT_OPTIONS = {
 	initialStreamIndex: undefined, 
+	forceStreamIndex: undefined,
 	debug: false,
 	bufferMinLength: 10
 }
@@ -50,7 +51,7 @@ class Player extends EventEmitter {
 
 		this._videoElement = videoElement;
 
-		this._options = options || DEFAULT_OPTIONS;
+		this._options =  {...DEFAULT_OPTIONS, ...options};
 
 
 		this._initPlayer(manifestURL);
@@ -344,6 +345,10 @@ class Player extends EventEmitter {
 				// override quality of initial stream it set
 				if (fragmentIndex === 0 && this._options.initialStreamIndex !== undefined) {
 					streamIndex = this._options.initialStreamIndex;
+				}
+
+				if (this._options.forceStreamIndex !== undefined) {
+					streamIndex = this._options.forceStreamIndex;
 				}
 
 				stream = this._manifest.getStream(streamIndex);
