@@ -116,6 +116,8 @@ class LoadManager extends EventEmitter {
 		self.type = '';
 		self.timeoutId = null;
 		self.requestDate = null;
+		self.latency = null;
+		self.contentTime = null;
 		self.isCached = false;
 		self.accessibleDateInHeader = false;
 		self.completionStatus = null;
@@ -123,6 +125,9 @@ class LoadManager extends EventEmitter {
 
 		self.onLoad = function(event) {
 			self.completionStatus = STATUS_LOADED;
+
+			self.contentTime = new Date().getTime() - (self.requestDate.getTime() + self.latency);
+
 			var dateString;
 
 			if (xhr.getAllResponseHeaders().indexOf('date: ') > -1) {
@@ -135,7 +140,7 @@ class LoadManager extends EventEmitter {
 				self.accessibleDateInHeader = true;
 			}
 
-			if (self.debug) console.log(self + ' worker.onLoad ' + self.url + ' cached:' + self.isCached);
+			if (self.debug) console.log(self + ' worker.onLoad ' + self.url + ' cached:' + self.isCached + ' latency:' + self.latency + ' contentTime:' + self.contentTime);
 			self.initNotificationBeacon();
 		}
 
@@ -171,11 +176,27 @@ class LoadManager extends EventEmitter {
 					self.onerror();
 				}
 			}
+
+			// check for when first byte loads to accertain latency
+			if (xhr.readyState === 3 && xhr.status === 200 && self.latency === null) {
+				self.latency = new Date().getTime() - self.requestDate.getTime();
+			}
+		}
+
+		self.onprogress = function(event) {
+			if (self.debug) console.log(self + ' onprogress ' + self.url + ' readyState:' + self.xhr.readyState + ' status:' + self.xhr.status);
+			
 		}
 
 		self.initNotificationBeacon = function() {
 			self.clearNotificationBeacon();
-			self.postMessage({'status':self.completionStatus, 'isCached':self.isCached, 'accessibleDateInHeader':self.accessibleDateInHeader});
+			self.postMessage({
+				"status": self.completionStatus,
+				"isCached": self.isCached,
+				"accessibleDateInHeader": self.accessibleDateInHeader,
+				"latency": self.latency,
+				"contentTime": self.contentTime
+			});
 
 			self.timeoutId = self.setTimeout(self.initNotificationBeacon, 1000);
 		}
@@ -197,6 +218,7 @@ class LoadManager extends EventEmitter {
 			self.xhr.onload = self.onLoad;
 			self.xhr.onerror = self.onerror;
 			self.xhr.onabort = self.onabort;
+			self.xhr.onprogress = self.onprogress;
 			self.xhr.onreadystatechange = self.onreadystatechange;
 			self.xhr.open('GET', url, true);
 			self.xhr.responseType = type; // IE11 must be asigned after open 
@@ -301,7 +323,6 @@ class LoadManager extends EventEmitter {
 		url += fragment.url;
 
 		fragment.isLoading();
-		BandwidthManager.start(fragment, debug);
 
 		return new Promise((resolve, reject) => {
 
@@ -310,6 +331,8 @@ class LoadManager extends EventEmitter {
 			const blob = new Blob([workerScript]);
 			const worker = new Worker(window.URL.createObjectURL(blob));
 			let isCached = false;
+			let latency = 0;
+			let time = 0;
 
 			this._workersSet.add(worker);
 
@@ -321,8 +344,13 @@ class LoadManager extends EventEmitter {
 
 					switch(event.data.status) {
 						case LoadManager.STATUS_LOADED:
+
 							isCached = event.data.isCached;
+							latency = event.data.latency;
+							time = event.data.contentTime;
+
 							worker.postMessage({action: 'retrieve'});
+
 							break;
 						default:
 							worker.postMessage({action: 'destroy'});
@@ -336,7 +364,9 @@ class LoadManager extends EventEmitter {
 
 				} else {
 					const arraybuffer = new Uint8Array(event.data);
-					BandwidthManager.stop(fragment, arraybuffer.length, isCached, debug);
+
+					BandwidthManager.save(fragment, arraybuffer.length, isCached, latency, time, debug);
+					
 					fragment.bytes = arraybuffer;
 
 					this._removeWorker(worker);

@@ -37,8 +37,6 @@ class BandwidthManager {
 	_history = null;
 
 
-
-
 	constructor(enforcer) {
 		if (enforcer != singletonEnforcer) throw new Error("Cannot construct singleton");
 	}
@@ -53,9 +51,7 @@ class BandwidthManager {
 	Public
 	_____________________________________________*/
 
-	start(fragment, debug) { this._start(fragment, debug) }
-
-	stop(fragment, bytes, isCached, debug) { this._stop(fragment, bytes, isCached, debug) }
+	save(fragment, bytes, isCached, latency, contentTime, debug) { this._save(fragment, bytes, isCached, latency, contentTime, debug) }
 
 	stopOnError(fragment) { this._stopOnError(fragment) }
 
@@ -73,27 +69,7 @@ class BandwidthManager {
 
 	_init() {
 		this._history = [];
-	}
-
-
-	/**
-	 * Called when a transfered is initiated
-	 * 
-	 * @param {Object} Fragment Model
-	 */
-	_start(fragment, debug = false) {
-		const identifier = fragment.url;
-		const {bandwidth, range} = this._getBandwidth();
-
-		this._history.push({
-			identifier: identifier,
-			start: new Date().getTime(),
-			type: (fragment.isInit)? 'init': 'media',
-			range: range,
-			estimatedBandwidth: bandwidth
-		})
-
-		if (debug) console.log(`_start fragment ${fragment.url}`);
+		this._ping = 0;
 	}
 
 
@@ -103,30 +79,38 @@ class BandwidthManager {
 	 * @param {Object} Fragment Model
 	 * @param {ArrayBuffer} bytes the data
 	 */
-	_stop(fragment, bytes, isCached = false, debug = false) {
+	_save(fragment, bytes, isCached, latency, time, debug) {
 		const identifier = fragment.url;
+		const {bandwidth, range} = this._getBandwidth();
 
-		const historyData = this._findIndetifier(identifier);
-		if (historyData) {
-			historyData.end = new Date().getTime();
-			historyData.bytes = bytes;
-			historyData.time = Math.max(historyData.end - historyData.start, 0);
-			historyData.isCached = isCached;
+		const actualBandwidth = (1000 / time) * bytes * 8;
 
-			if (isCached) {
-				historyData.time = 0;
-			}
+		fragment.loadData = {
+			identifier: identifier,
+			type: (fragment.isInit)? 'init': 'media',
+			range: range,
+			estimatedBandwidth: bandwidth,
+			bytes: bytes,
+			time: time,
+			latency: latency,
+			bandwidth: actualBandwidth,
+			isCached: isCached
+		};
 
-			historyData.bandwidth = (1000 / historyData.time) * bytes * 8; // in bits / second
+		this._history.push(fragment.loadData);
 
-			if (isFinite(historyData.bandwidth) === false) {
-				historyData.bandwidth = null;
-			}
-		}
+		if (debug) console.log(`_save fragment ${fragment.url} load time: ${time} mbps: ${actualBandwidth / 1024 / 1024} latency: ${latency}`);
+	}
 
-		if (debug) console.log(`_stop fragment ${fragment.url} load time: ${historyData.time} mbps: ${historyData.bandwidth / 1024 / 1024}`);
 
-		fragment.loadData = historyData;
+	_updatePing() {
+		// get fragment.isInit from historyData item
+		const initFragmentLoadTimes = this._history
+			.slice(-3)
+			.filter(data => data.type === 'init')
+			.map(data => data.time);
+		const clippedInitFragmentLoadTimes = removeSpikes(initFragmentLoadTimes, 0.5);
+		this._ping = (clippedInitFragmentLoadTimes.length > 0) ? clippedInitFragmentLoadTimes[0] : 0;
 	}
 
 
@@ -168,7 +152,7 @@ class BandwidthManager {
 			// only use history measurements within MEASURE_VALID_READINGS, that are not cached and witin MEASURE_VALID_READINGS
 			let slots = 10;
 			bandwidths = bandwidths.reduceRight((filteredBandwidths, nextBandwidth) => {
-				if (nextBandwidth.isCached !== true && slots > 0 && nextBandwidth.end) {
+				if (nextBandwidth.isCached !== true && slots > 0) {
 					filteredBandwidths.unshift(nextBandwidth);
 
 					slots--;

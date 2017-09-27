@@ -1,6 +1,6 @@
 # TODO
 
-## Add handling of timeout for loading Fragment
+## FIXED Add handling of timeout for loading Fragment
 
 _checkVideoBuffer shouldGetData:true bufferEmptyAtTime:47
 20:04:25.071 bandwidth.js:97 _start fragment video/7/seg-48.m4f
@@ -40,7 +40,7 @@ _checkVideoBuffer shouldGetData:true bufferEmptyAtTime:47
 20:04:52.009 player.js:320 _checkCachedData COMPLETE
 
 
-## Cache timeout and fail to load 
+## FIXED Cache timeout and fail to load 
 player.js:302 _checkCachedData COMPLETE
 08:28:42.566 player.js:218 _checkVideoBuffer shouldGetData:false bufferEmptyAtTime:36
 08:28:42.740 video-element.js:251 VIDEO EVENT: timeupdate 33.500745
