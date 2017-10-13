@@ -54,6 +54,13 @@ class Main {
 		videoElement.addEventListener('pause', function() {
 			button.classList.add('minimal-dash__play-pause--paused');
 		});
+		videoElement.addEventListener('waiting', function() {
+			console.log('waiting');
+		});
+
+		videoElement.addEventListener('stalled', function() {
+			console.log('stalled');
+		});
 
 		button.addEventListener('click', (event) => {
 			if (videoElement.paused) {

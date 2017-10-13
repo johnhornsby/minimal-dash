@@ -1,5 +1,4 @@
 import Fragment from '../models/fragment';
-import {removeSpikes} from '../util/stats';
 
 export default class BufferOutput {
 

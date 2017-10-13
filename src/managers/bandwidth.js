@@ -5,14 +5,14 @@
  */
 
 import LoadManager from './load';
-import {removeSpikes} from '../util/stats';
+import {removeSpikes, getMean} from '../util/stats';
 
 
 const MEASURE_VALID_READINGS = 10; // bandwidth readings
 
 const INITIAL_BANDWIDTH = 500000; // 0.5 mb / s
 
-const CLIP_TOLERANCE = 0.95; // value between 0 and 1, 1 being maximum tollerant of peaks
+const CLIP_TOLERANCE = 0.25; // value between 0 and 1, 1 being maximum tollerant of peaks
 
 const CACHED_THRESHHOLD = 32; // ms loading within threshold to determine a cached fragment. 
 
@@ -83,7 +83,11 @@ class BandwidthManager {
 		const identifier = fragment.url;
 		const {bandwidth, range} = this._getBandwidth();
 
-		const actualBandwidth = (1000 / time) * bytes * 8;
+		let actualBandwidth = (1000 / time) * bytes * 8;
+
+		if (!isFinite(actualBandwidth)) {
+			actualBandwidth = 0;
+		}
 
 		fragment.loadData = {
 			identifier: identifier,
@@ -100,17 +104,6 @@ class BandwidthManager {
 		this._history.push(fragment.loadData);
 
 		if (debug) console.log(`_save fragment ${fragment.url} load time: ${time} mbps: ${actualBandwidth / 1024 / 1024} latency: ${latency}`);
-	}
-
-
-	_updatePing() {
-		// get fragment.isInit from historyData item
-		const initFragmentLoadTimes = this._history
-			.slice(-3)
-			.filter(data => data.type === 'init')
-			.map(data => data.time);
-		const clippedInitFragmentLoadTimes = removeSpikes(initFragmentLoadTimes, 0.5);
-		this._ping = (clippedInitFragmentLoadTimes.length > 0) ? clippedInitFragmentLoadTimes[0] : 0;
 	}
 
 
@@ -166,8 +159,9 @@ class BandwidthManager {
 				bandwidths = bandwidths.map(history => history.bandwidth);
 
 				// take all but the obvious spikes
-				const clippedBandwidth = removeSpikes(bandwidths, CLIP_TOLERANCE); 
+				const clippedBandwidth = removeSpikes(bandwidths, CLIP_TOLERANCE);
 
+				clippedBandwidth.sort((a, b) => a - b);
 				// choose an appropriate bandwidth from the clipped array
 				const bandwidth = this._selectBandwidth(clippedBandwidth);
 
@@ -176,7 +170,7 @@ class BandwidthManager {
 					window.localStorage.bandwidth = parseInt(bandwidth);
 				}
 
-				return {
+				const bandwidthData = {
 					bandwidth:bandwidth,
 					range: {
 						start: clippedBandwidth[0],
@@ -185,6 +179,10 @@ class BandwidthManager {
 						all: bandwidths
 					}
 				}
+
+				console.log(JSON.stringify(bandwidthData));
+
+				return bandwidthData;
 			}
 		}
 
@@ -198,8 +196,9 @@ class BandwidthManager {
 
 	_selectBandwidth(bandwidths) {
 		// used to take mean or median here, however lets be a little more pesimistic and ensure a lower value
+		// return getMean(bandwidths);
 		// use the value that is 25% between the min and max
-		return bandwidths[0] + ((bandwidths[bandwidths.length - 1] - bandwidths[0]) * 0.75);
+		return bandwidths[0] + ((bandwidths[bandwidths.length - 1] - bandwidths[0]) * 0.25);
 	}
 
 

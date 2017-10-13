@@ -59,6 +59,9 @@ export function removeSpikes(values, tolerance = 0) {
 	// first off remove nulls 
 	values = values.filter(value => value !== null && value !== undefined && value !== Number.POSITIVE_INFINITY && isNaN(value) === false);
 
+	// save copy to ensure order can be put back
+	const originalValues = [...values];
+
 	// initial sort to begin to analyse the variance between the values
 	const sortedValues = values.sort((a, b) => a - b);
 	// we attempt to find a value that is more similar to all the others, we used to use the median here
@@ -107,9 +110,24 @@ export function removeSpikes(values, tolerance = 0) {
 		return [median];
 	}
 
-	clippedValues = clippedValues.sort((a, b) => a - b);
+	// clippedValues = clippedValues.sort((a, b) => a - b);
+	// return clippedValues;
 
-	return clippedValues;
+	let index, reorderedValues = [];
+	for (let i = clippedValues.length -1; i > -1; i--) {
+		index = originalValues.indexOf(clippedValues[i]);
+
+		reorderedValues[index] = clippedValues[i];
+		originalValues.splice(index, 1);
+	}
+
+	for (let i = reorderedValues.length -1; i > -1; i--) {
+		if (reorderedValues[i] === undefined) {
+			reorderedValues.splice(i, 1);
+		}
+	}
+
+	return reorderedValues;
 }
 
 
@@ -132,4 +150,18 @@ export function getMedian(sortedValues) {
 	}
 	
 	return sortedValues[startIndex] + ((sortedValues[endIndex] - sortedValues[startIndex]) / 2);
+}
+
+
+export function getMean(values) {
+	let sum = 0;
+
+	for (let i = 0; i < values.length; i++) {
+		sum += values[i];
+	}
+	if (sum === 0) {
+		return 0;
+	}
+
+	return sum / values.length;
 }
