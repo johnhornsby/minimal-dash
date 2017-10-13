@@ -11,41 +11,41 @@
 return /******/ (function(modules) { // webpackBootstrap
 /******/ 	// The module cache
 /******/ 	var installedModules = {};
-
+/******/
 /******/ 	// The require function
 /******/ 	function __webpack_require__(moduleId) {
-
+/******/
 /******/ 		// Check if module is in cache
-/******/ 		if(installedModules[moduleId])
+/******/ 		if(installedModules[moduleId]) {
 /******/ 			return installedModules[moduleId].exports;
-
+/******/ 		}
 /******/ 		// Create a new module (and put it into the cache)
 /******/ 		var module = installedModules[moduleId] = {
 /******/ 			i: moduleId,
 /******/ 			l: false,
 /******/ 			exports: {}
 /******/ 		};
-
+/******/
 /******/ 		// Execute the module function
 /******/ 		modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
-
+/******/
 /******/ 		// Flag the module as loaded
 /******/ 		module.l = true;
-
+/******/
 /******/ 		// Return the exports of the module
 /******/ 		return module.exports;
 /******/ 	}
-
-
+/******/
+/******/
 /******/ 	// expose the modules object (__webpack_modules__)
 /******/ 	__webpack_require__.m = modules;
-
+/******/
 /******/ 	// expose the module cache
 /******/ 	__webpack_require__.c = installedModules;
-
+/******/
 /******/ 	// identity function for calling harmony imports with the correct context
 /******/ 	__webpack_require__.i = function(value) { return value; };
-
+/******/
 /******/ 	// define getter function for harmony exports
 /******/ 	__webpack_require__.d = function(exports, name, getter) {
 /******/ 		if(!__webpack_require__.o(exports, name)) {
@@ -56,7 +56,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/ 			});
 /******/ 		}
 /******/ 	};
-
+/******/
 /******/ 	// getDefaultExport function for compatibility with non-harmony modules
 /******/ 	__webpack_require__.n = function(module) {
 /******/ 		var getter = module && module.__esModule ?
@@ -65,13 +65,13 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/ 		__webpack_require__.d(getter, 'a', getter);
 /******/ 		return getter;
 /******/ 	};
-
+/******/
 /******/ 	// Object.prototype.hasOwnProperty.call
 /******/ 	__webpack_require__.o = function(object, property) { return Object.prototype.hasOwnProperty.call(object, property); };
-
+/******/
 /******/ 	// __webpack_public_path__
 /******/ 	__webpack_require__.p = "";
-
+/******/
 /******/ 	// Load entry module and return exports
 /******/ 	return __webpack_require__(__webpack_require__.s = 13);
 /******/ })
@@ -217,14 +217,14 @@ Fragment.status = {
 	LOADING: 'loading',
 	LOADED: 'loaded'
 };
-/* harmony default export */ __webpack_exports__["a"] = Fragment;
+/* harmony default export */ __webpack_exports__["a"] = (Fragment);
 
 /***/ }),
 /* 1 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var __WEBPACK_AMD_DEFINE_RESULT__;/*!
- * EventEmitter v5.1.0 - git.io/ee
+ * EventEmitter v5.2.2 - git.io/ee
  * Unlicense - http://unlicense.org/
  * Oliver Caldwell - http://oli.me.uk/
  * @preserve
@@ -467,7 +467,7 @@ var __WEBPACK_AMD_DEFINE_RESULT__;/*!
 
     /**
      * Adds listeners in bulk using the manipulateListeners method.
-     * If you pass an object as the second argument you can add to multiple events at once. The object should contain key value pairs of events and listeners or listener arrays. You can also pass it an event name and an array of listeners to be added.
+     * If you pass an object as the first argument you can add to multiple events at once. The object should contain key value pairs of events and listeners or listener arrays. You can also pass it an event name and an array of listeners to be added.
      * You can also pass it a regular expression to add the array of listeners to all events that match it.
      * Yeah, this function does quite a bit. That's probably a bad thing.
      *
@@ -482,7 +482,7 @@ var __WEBPACK_AMD_DEFINE_RESULT__;/*!
 
     /**
      * Removes listeners in bulk using the manipulateListeners method.
-     * If you pass an object as the second argument you can remove from multiple events at once. The object should contain key value pairs of events and listeners or listener arrays.
+     * If you pass an object as the first argument you can remove from multiple events at once. The object should contain key value pairs of events and listeners or listener arrays.
      * You can also pass it an event name and an array of listeners to be removed.
      * You can also pass it a regular expression to remove the listeners from all events that match it.
      *
@@ -718,7 +718,7 @@ var __WEBPACK_AMD_DEFINE_RESULT__;/*!
 
 "use strict";
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__load__ = __webpack_require__(3);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__util_stats__ = __webpack_require__(5);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__util_stats__ = __webpack_require__(12);
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -736,7 +736,7 @@ var MEASURE_VALID_READINGS = 10; // bandwidth readings
 
 var INITIAL_BANDWIDTH = 500000; // 0.5 mb / s
 
-var CLIP_TOLERANCE = 0.95; // value between 0 and 1, 1 being maximum tollerant of peaks
+var CLIP_TOLERANCE = 0.25; // value between 0 and 1, 1 being maximum tollerant of peaks
 
 var CACHED_THRESHHOLD = 32; // ms loading within threshold to determine a cached fragment. 
 
@@ -771,14 +771,9 @@ var BandwidthManager = function () {
  _____________________________________________*/
 
 	_createClass(BandwidthManager, [{
-		key: 'start',
-		value: function start(fragment, debug) {
-			this._start(fragment, debug);
-		}
-	}, {
-		key: 'stop',
-		value: function stop(fragment, bytes, isCached, debug) {
-			this._stop(fragment, bytes, isCached, debug);
+		key: 'save',
+		value: function save(fragment, bytes, isCached, latency, contentTime, debug) {
+			this._save(fragment, bytes, isCached, latency, contentTime, debug);
 		}
 	}, {
 		key: 'stopOnError',
@@ -799,34 +794,7 @@ var BandwidthManager = function () {
 		key: '_init',
 		value: function _init() {
 			this._history = [];
-		}
-
-		/**
-   * Called when a transfered is initiated
-   * 
-   * @param {Object} Fragment Model
-   */
-
-	}, {
-		key: '_start',
-		value: function _start(fragment) {
-			var debug = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
-
-			var identifier = fragment.url;
-
-			var _getBandwidth2 = this._getBandwidth(),
-			    bandwidth = _getBandwidth2.bandwidth,
-			    range = _getBandwidth2.range;
-
-			this._history.push({
-				identifier: identifier,
-				start: new Date().getTime(),
-				type: fragment.isInit ? 'init' : 'media',
-				range: range,
-				estimatedBandwidth: bandwidth
-			});
-
-			if (debug) console.log('_start fragment ' + fragment.url);
+			this._ping = 0;
 		}
 
 		/**
@@ -837,34 +805,35 @@ var BandwidthManager = function () {
    */
 
 	}, {
-		key: '_stop',
-		value: function _stop(fragment, bytes) {
-			var isCached = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : false;
-			var debug = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : false;
-
+		key: '_save',
+		value: function _save(fragment, bytes, isCached, latency, time, debug) {
 			var identifier = fragment.url;
 
-			var historyData = this._findIndetifier(identifier);
-			if (historyData) {
-				historyData.end = new Date().getTime();
-				historyData.bytes = bytes;
-				historyData.time = Math.max(historyData.end - historyData.start, 0);
-				historyData.isCached = isCached;
+			var _getBandwidth2 = this._getBandwidth(),
+			    bandwidth = _getBandwidth2.bandwidth,
+			    range = _getBandwidth2.range;
 
-				if (isCached) {
-					historyData.time = 0;
-				}
+			var actualBandwidth = 1000 / time * bytes * 8;
 
-				historyData.bandwidth = 1000 / historyData.time * bytes * 8; // in bits / second
-
-				if (isFinite(historyData.bandwidth) === false) {
-					historyData.bandwidth = null;
-				}
+			if (!isFinite(actualBandwidth)) {
+				actualBandwidth = 0;
 			}
 
-			if (debug) console.log('_stop fragment ' + fragment.url + ' load time: ' + historyData.time + ' mbps: ' + historyData.bandwidth / 1024 / 1024);
+			fragment.loadData = {
+				identifier: identifier,
+				type: fragment.isInit ? 'init' : 'media',
+				range: range,
+				estimatedBandwidth: bandwidth,
+				bytes: bytes,
+				time: time,
+				latency: latency,
+				bandwidth: actualBandwidth,
+				isCached: isCached
+			};
 
-			fragment.loadData = historyData;
+			this._history.push(fragment.loadData);
+
+			if (debug) console.log('_save fragment ' + fragment.url + ' load time: ' + time + ' mbps: ' + actualBandwidth / 1024 / 1024 + ' latency: ' + latency);
 		}
 	}, {
 		key: '_stopOnError',
@@ -914,7 +883,7 @@ var BandwidthManager = function () {
 				// only use history measurements within MEASURE_VALID_READINGS, that are not cached and witin MEASURE_VALID_READINGS
 				var slots = 10;
 				bandwidths = bandwidths.reduceRight(function (filteredBandwidths, nextBandwidth) {
-					if (nextBandwidth.isCached !== true && slots > 0 && nextBandwidth.end) {
+					if (nextBandwidth.isCached !== true && slots > 0) {
 						filteredBandwidths.unshift(nextBandwidth);
 
 						slots--;
@@ -932,6 +901,9 @@ var BandwidthManager = function () {
 					// take all but the obvious spikes
 					var clippedBandwidth = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__util_stats__["a" /* removeSpikes */])(bandwidths, CLIP_TOLERANCE);
 
+					clippedBandwidth.sort(function (a, b) {
+						return a - b;
+					});
 					// choose an appropriate bandwidth from the clipped array
 					var bandwidth = this._selectBandwidth(clippedBandwidth);
 
@@ -940,7 +912,7 @@ var BandwidthManager = function () {
 						window.localStorage.bandwidth = parseInt(bandwidth);
 					}
 
-					return {
+					var bandwidthData = {
 						bandwidth: bandwidth,
 						range: {
 							start: clippedBandwidth[0],
@@ -949,6 +921,10 @@ var BandwidthManager = function () {
 							all: bandwidths
 						}
 					};
+
+					console.log(JSON.stringify(bandwidthData));
+
+					return bandwidthData;
 				}
 			}
 
@@ -962,8 +938,9 @@ var BandwidthManager = function () {
 		key: '_selectBandwidth',
 		value: function _selectBandwidth(bandwidths) {
 			// used to take mean or median here, however lets be a little more pesimistic and ensure a lower value
+			// return getMean(bandwidths);
 			// use the value that is 25% between the min and max
-			return bandwidths[0] + (bandwidths[bandwidths.length - 1] - bandwidths[0]) * 0.75;
+			return bandwidths[0] + (bandwidths[bandwidths.length - 1] - bandwidths[0]) * 0.25;
 		}
 	}, {
 		key: '_getQuality',
@@ -1001,7 +978,7 @@ var BandwidthManager = function () {
 	return BandwidthManager;
 }();
 
-/* harmony default export */ __webpack_exports__["a"] = BandwidthManager.instance;
+/* harmony default export */ __webpack_exports__["a"] = (BandwidthManager.instance);
 
 /***/ }),
 /* 3 */
@@ -1010,7 +987,7 @@ var BandwidthManager = function () {
 "use strict";
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_wolfy87_eventemitter__ = __webpack_require__(1);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_wolfy87_eventemitter___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_wolfy87_eventemitter__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__util_fetch_xhr2__ = __webpack_require__(12);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__util_fetch_xhr2__ = __webpack_require__(11);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__models_manifest__ = __webpack_require__(4);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__bandwidth__ = __webpack_require__(2);
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -1131,7 +1108,7 @@ var LoadManager = function (_EventEmitter) {
 			var debug = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : false;
 
 			// worker script used to load images
-			return '\n\n\t\tvar STATUS_LOADED = \'' + LoadManager.STATUS_LOADED + '\';\n\t\tvar STATUS_ERROR = \'' + LoadManager.STATUS_ERROR + '\';\n\t\tvar STATUS_TIMEOUT = \'' + LoadManager.STATUS_TIMEOUT + '\';\n\t\tvar STATUS_ABORT = \'' + LoadManager.STATUS_ABORT + '\';\n\t\t\n\t\tvar XHR_TIMEOUT = ' + LoadManager.XHR_TIMEOUT + ';\n\n\t\tself.xhr = null;\n\t\tself.url = \'\';\n\t\tself.type = \'\';\n\t\tself.timeoutId = null;\n\t\tself.requestDate = null;\n\t\tself.isCached = false;\n\t\tself.accessibleDateInHeader = false;\n\t\tself.completionStatus = null;\n\t\tself.debug = ' + debug + '\n\n\t\tself.onLoad = function(event) {\n\t\t\tself.completionStatus = STATUS_LOADED;\n\t\t\tvar dateString;\n\n\t\t\tif (xhr.getAllResponseHeaders().indexOf(\'date: \') > -1) {\n\t\t\t\tdateString = xhr.getResponseHeader(\'Date\');\n\t\t\t}\n\t\t\t\n\t\t\tif (dateString != null) {\n\t\t\t\tvar repsonseDate = new Date(dateString);\n\t\t\t\tself.isCached = repsonseDate.getTime() < self.requestDate.getTime();\n\t\t\t\tself.accessibleDateInHeader = true;\n\t\t\t}\n\n\t\t\tif (self.debug) console.log(self + \' worker.onLoad \' + self.url + \' cached:\' + self.isCached);\n\t\t\tself.initNotificationBeacon();\n\t\t}\n\n\t\tself.onabort = function() {\n\t\t\tself.completionStatus = STATUS_ABORT;\n\t\t\tif (self.debug) console.error(self + \' abort \' + self.url);\n\t\t\tself.initNotificationBeacon();\n\t\t}\n\n\t\tself.onerror = function(event) {\n\t\t\tself.completionStatus = STATUS_ERROR;\n\t\t\tif (self.debug) console.error(self + \' error \' + self.url);\n\t\t\tself.initNotificationBeacon();\n\t\t}\n\n\t\tself.ontimeout = function() {\n\t\t\tself.completionStatus = STATUS_TIMEOUT;\n\t\t\tif (self.debug) console.error(self + \' timeout \' + self.url);\n\t\t\tself.initNotificationBeacon();\n\t\t}\n\n\t\t// net::ERR_INTERNET_DISCONNECTED\n\t\tself.onreadystatechange = function(event) {\n\t\t\tif (self.debug) console.log(self + \' onreadystatechange \' + self.url + \' readyState:\' + self.xhr.readyState + \' status:\' + self.xhr.status);\n\t\t\t\n\t\t\t// check for timeout error here, as we are not using timeout event\n\t\t\tif (xhr.readyState === 4 && xhr.status !== 200) {\n\t\t\t\tvar errorDate = new Date();\n\t\t\t\tvar loadSeconds = (errorDate.getTime() - self.requestDate.getTime()) / 1000;\t\t\t\t\n\t\t\t\tif (loadSeconds * 100 > 99 && loadSeconds * 100 < 101) {\n\t\t\t\t\tself.ontimeout();\n\t\t\t\t} else {\n\t\t\t\t\tself.onerror();\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\n\t\tself.initNotificationBeacon = function() {\n\t\t\tself.clearNotificationBeacon();\n\t\t\tself.postMessage({\'status\':self.completionStatus, \'isCached\':self.isCached, \'accessibleDateInHeader\':self.accessibleDateInHeader});\n\n\t\t\tself.timeoutId = self.setTimeout(self.initNotificationBeacon, 1000);\n\t\t}\n\n\t\tself.clearNotificationBeacon = function() {\n\t\t\tif (self.timeoutId > 1) {\n\t\t\t\tvar str = \'clearNotificationBeacon()\' + self.url + \' \' + self.timeoutId\n\t\t\t\tif (self.debug) console.log(str);\n\t\t\t}\n\t\t\tself.clearTimeout(self.timeoutId);\n\t\t}\n\n\t\tself.initLoad = function(url, type) {\n\t\t\tself.requestDate = new Date();\n\t\t\tself.url = url;\n\t\t\tself.type = type;\n\t\t\tself.xhr = new XMLHttpRequest();\n\t\t\tself.xhr.timeout = XHR_TIMEOUT;\n\t\t\tself.xhr.onload = self.onLoad;\n\t\t\tself.xhr.onerror = self.onerror;\n\t\t\tself.xhr.onabort = self.onabort;\n\t\t\tself.xhr.onreadystatechange = self.onreadystatechange;\n\t\t\tself.xhr.open(\'GET\', url, true);\n\t\t\tself.xhr.responseType = type; // IE11 must be asigned after open \n\t\t\tself.xhr.send();\n\t\t}\n\n\t\tself.retrieveResponse = function() {\n\t\t\tswitch(self.type) {\n\t\t\tcase \'arraybuffer\':\n\t\t\t\tself.postMessage(self.xhr.response, [self.xhr.response]);\n\t\t\t\tbreak;\n\t\t\tcase \'text\':\n\t\t\t\tself.postMessage(self.xhr.response);\n\t\t\t\tbreak;\n\t\t\t}\n\n\t\t\tself.destroy();\n\t\t\tif (self.debug) console.log(self + \' worker.retrieveResponse \' + self.url);\n\t\t}\n\n\t\tself.destroy = function() {\n\t\t\tself.clearNotificationBeacon();\n\t\t\tself.close();\n\t\t}\n\n\t\tself.addEventListener(\'message\', function(event) {\n\t\t\tif (event.data.action) {\n\t\t\t\tif (event.data.action === \'retrieve\') {\n\t\t\t\t\tself.retrieveResponse();\n\t\t\t\t} else if (event.data.action === \'destroy\') {\n\t\t\t\t\tself.destroy();\n\t\t\t\t}\n\t\t\t}\n\n\t\t\tif (event.data.url && event.data.url !== \'\') {\n\t\t\t\tself.initLoad(event.data.url, event.data.type);\n\t\t\t}\n\t\t}, false);';
+			return '\n\n\t\tvar STATUS_LOADED = \'' + LoadManager.STATUS_LOADED + '\';\n\t\tvar STATUS_ERROR = \'' + LoadManager.STATUS_ERROR + '\';\n\t\tvar STATUS_TIMEOUT = \'' + LoadManager.STATUS_TIMEOUT + '\';\n\t\tvar STATUS_ABORT = \'' + LoadManager.STATUS_ABORT + '\';\n\t\t\n\t\tvar XHR_TIMEOUT = ' + LoadManager.XHR_TIMEOUT + ';\n\n\t\tself.xhr = null;\n\t\tself.url = \'\';\n\t\tself.type = \'\';\n\t\tself.timeoutId = null;\n\t\tself.requestDate = null;\n\t\tself.latency = null;\n\t\tself.contentTime = null;\n\t\tself.isCached = false;\n\t\tself.accessibleDateInHeader = false;\n\t\tself.completionStatus = null;\n\t\tself.debug = ' + debug + '\n\n\t\tself.onLoad = function(event) {\n\t\t\tself.completionStatus = STATUS_LOADED;\n\n\t\t\tself.contentTime = new Date().getTime() - (self.requestDate.getTime() + self.latency);\n\n\t\t\tvar dateString;\n\n\t\t\tif (xhr.getAllResponseHeaders().indexOf(\'date: \') > -1) {\n\t\t\t\tdateString = xhr.getResponseHeader(\'Date\');\n\t\t\t}\n\t\t\t\n\t\t\tif (dateString != null) {\n\t\t\t\tvar repsonseDate = new Date(dateString);\n\t\t\t\tself.isCached = repsonseDate.getTime() < self.requestDate.getTime();\n\t\t\t\tself.accessibleDateInHeader = true;\n\t\t\t}\n\n\t\t\tif (self.debug) console.log(self + \' worker.onLoad \' + self.url + \' cached:\' + self.isCached + \' latency:\' + self.latency + \' contentTime:\' + self.contentTime);\n\t\t\tself.initNotificationBeacon();\n\t\t}\n\n\t\tself.onabort = function() {\n\t\t\tself.completionStatus = STATUS_ABORT;\n\t\t\tif (self.debug) console.error(self + \' abort \' + self.url);\n\t\t\tself.initNotificationBeacon();\n\t\t}\n\n\t\tself.onerror = function(event) {\n\t\t\tself.completionStatus = STATUS_ERROR;\n\t\t\tif (self.debug) console.error(self + \' error \' + self.url);\n\t\t\tself.initNotificationBeacon();\n\t\t}\n\n\t\tself.ontimeout = function() {\n\t\t\tself.completionStatus = STATUS_TIMEOUT;\n\t\t\tif (self.debug) console.error(self + \' timeout \' + self.url);\n\t\t\tself.initNotificationBeacon();\n\t\t}\n\n\t\t// net::ERR_INTERNET_DISCONNECTED\n\t\tself.onreadystatechange = function(event) {\n\t\t\tif (self.debug) console.log(self + \' onreadystatechange \' + self.url + \' readyState:\' + self.xhr.readyState + \' status:\' + self.xhr.status);\n\t\t\t\n\t\t\t// check for timeout error here, as we are not using timeout event\n\t\t\tif (xhr.readyState === 4 && xhr.status !== 200) {\n\t\t\t\tvar errorDate = new Date();\n\t\t\t\tvar loadSeconds = (errorDate.getTime() - self.requestDate.getTime()) / 1000;\t\t\t\t\n\t\t\t\tif (loadSeconds * 100 > 99 && loadSeconds * 100 < 101) {\n\t\t\t\t\tself.ontimeout();\n\t\t\t\t} else {\n\t\t\t\t\tself.onerror();\n\t\t\t\t}\n\t\t\t}\n\n\t\t\t// check for when first byte loads to accertain latency\n\t\t\tif (xhr.readyState === 3 && xhr.status === 200 && self.latency === null) {\n\t\t\t\tself.latency = new Date().getTime() - self.requestDate.getTime();\n\t\t\t}\n\t\t}\n\n\t\tself.onprogress = function(event) {\n\t\t\tif (self.debug) console.log(self + \' onprogress \' + self.url + \' readyState:\' + self.xhr.readyState + \' status:\' + self.xhr.status);\n\t\t\t\n\t\t}\n\n\t\tself.initNotificationBeacon = function() {\n\t\t\tself.clearNotificationBeacon();\n\t\t\tself.postMessage({\n\t\t\t\t"status": self.completionStatus,\n\t\t\t\t"isCached": self.isCached,\n\t\t\t\t"accessibleDateInHeader": self.accessibleDateInHeader,\n\t\t\t\t"latency": self.latency,\n\t\t\t\t"contentTime": self.contentTime\n\t\t\t});\n\n\t\t\tself.timeoutId = self.setTimeout(self.initNotificationBeacon, 1000);\n\t\t}\n\n\t\tself.clearNotificationBeacon = function() {\n\t\t\tif (self.timeoutId > 1) {\n\t\t\t\tvar str = \'clearNotificationBeacon()\' + self.url + \' \' + self.timeoutId\n\t\t\t\tif (self.debug) console.log(str);\n\t\t\t}\n\t\t\tself.clearTimeout(self.timeoutId);\n\t\t}\n\n\t\tself.initLoad = function(url, type) {\n\t\t\tself.requestDate = new Date();\n\t\t\tself.url = url;\n\t\t\tself.type = type;\n\t\t\tself.xhr = new XMLHttpRequest();\n\t\t\tself.xhr.timeout = XHR_TIMEOUT;\n\t\t\tself.xhr.onload = self.onLoad;\n\t\t\tself.xhr.onerror = self.onerror;\n\t\t\tself.xhr.onabort = self.onabort;\n\t\t\tself.xhr.onprogress = self.onprogress;\n\t\t\tself.xhr.onreadystatechange = self.onreadystatechange;\n\t\t\tself.xhr.open(\'GET\', url, true);\n\t\t\tself.xhr.responseType = type; // IE11 must be asigned after open \n\t\t\tself.xhr.send();\n\t\t}\n\n\t\tself.retrieveResponse = function() {\n\t\t\tswitch(self.type) {\n\t\t\tcase \'arraybuffer\':\n\t\t\t\tself.postMessage(self.xhr.response, [self.xhr.response]);\n\t\t\t\tbreak;\n\t\t\tcase \'text\':\n\t\t\t\tself.postMessage(self.xhr.response);\n\t\t\t\tbreak;\n\t\t\t}\n\n\t\t\tself.destroy();\n\t\t\tif (self.debug) console.log(self + \' worker.retrieveResponse \' + self.url);\n\t\t}\n\n\t\tself.destroy = function() {\n\t\t\tself.clearNotificationBeacon();\n\t\t\tself.close();\n\t\t}\n\n\t\tself.addEventListener(\'message\', function(event) {\n\t\t\tif (event.data.action) {\n\t\t\t\tif (event.data.action === \'retrieve\') {\n\t\t\t\t\tself.retrieveResponse();\n\t\t\t\t} else if (event.data.action === \'destroy\') {\n\t\t\t\t\tself.destroy();\n\t\t\t\t}\n\t\t\t}\n\n\t\t\tif (event.data.url && event.data.url !== \'\') {\n\t\t\t\tself.initLoad(event.data.url, event.data.type);\n\t\t\t}\n\t\t}, false);';
 		}
 
 		/**
@@ -1208,7 +1185,6 @@ var LoadManager = function (_EventEmitter) {
 			url += fragment.url;
 
 			fragment.isLoading();
-			__WEBPACK_IMPORTED_MODULE_3__bandwidth__["a" /* default */].start(fragment, debug);
 
 			return new Promise(function (resolve, reject) {
 
@@ -1217,6 +1193,8 @@ var LoadManager = function (_EventEmitter) {
 				var blob = new Blob([workerScript]);
 				var worker = new Worker(window.URL.createObjectURL(blob));
 				var isCached = false;
+				var latency = 0;
+				var time = 0;
 
 				_this3._workersSet.add(worker);
 
@@ -1228,8 +1206,13 @@ var LoadManager = function (_EventEmitter) {
 
 						switch (event.data.status) {
 							case LoadManager.STATUS_LOADED:
+
 								isCached = event.data.isCached;
+								latency = event.data.latency;
+								time = event.data.contentTime;
+
 								worker.postMessage({ action: 'retrieve' });
+
 								break;
 							default:
 								worker.postMessage({ action: 'destroy' });
@@ -1242,7 +1225,9 @@ var LoadManager = function (_EventEmitter) {
 						}
 					} else {
 						var arraybuffer = new Uint8Array(event.data);
-						__WEBPACK_IMPORTED_MODULE_3__bandwidth__["a" /* default */].stop(fragment, arraybuffer.length, isCached, debug);
+
+						__WEBPACK_IMPORTED_MODULE_3__bandwidth__["a" /* default */].save(fragment, arraybuffer.length, isCached, latency, time, debug);
+
 						fragment.bytes = arraybuffer;
 
 						_this3._removeWorker(worker);
@@ -1313,14 +1298,14 @@ LoadManager.STATUS_ABORT = 'abort';
 LoadManager.XHR_TIMEOUT = 10000;
 
 
-/* harmony default export */ __webpack_exports__["a"] = LoadManager.instance;
+/* harmony default export */ __webpack_exports__["a"] = (LoadManager.instance);
 
 /***/ }),
 /* 4 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__stream__ = __webpack_require__(10);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__stream__ = __webpack_require__(9);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__fragment__ = __webpack_require__(0);
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
@@ -1527,201 +1512,23 @@ var Manifest = function () {
 	return Manifest;
 }();
 
-/* harmony default export */ __webpack_exports__["a"] = Manifest;
+/* harmony default export */ __webpack_exports__["a"] = (Manifest);
 
 /***/ }),
 /* 5 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony export (immutable) */ __webpack_exports__["a"] = removeSpikes;
-/* unused harmony export getMedian */
-/**
- * Takes an array of numbers and pucks out any odd spike values that don't
- * represent the typical varience within the typical range of values
- */
-function removeSpikes(values) {
-	var tolerance = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
-
-
-	// nothing to clip
-	if (values.length < 2) {
-		return values;
-	}
-
-	// Utility function to return the sum variance against a defined value within an array of values
-	function getSumVariancesOfIndex(values, index) {
-		var varianceSum = 0;
-
-		for (var i = 0; i < values.length; i++) {
-			if (i !== index) {
-				varianceSum += Math.abs(values[index] - values[i]);
-			}
-		}
-
-		return varianceSum;
-	}
-
-	// Utility function to return the value that varies the least relative to the other values
-	function getValueOfLeastVariance(values) {
-		var minSum = Number.POSITIVE_INFINITY;
-		var currentSum = void 0;
-		var minIndex = -1;
-
-		for (var i = 0; i < values.length; i++) {
-			currentSum = getSumVariancesOfIndex(values, i);
-			if (currentSum < minSum) {
-				minSum = currentSum;
-				minIndex = i;
-			}
-		}
-
-		return values[minIndex];
-	}
-
-	// Utility function to return the area of the variance against a possible max
-	function getAreaPercentage(values) {
-
-		var area = 0;
-		var max = values.reduce(function (previous, next) {
-			return Math.max(previous, next);
-		});
-		var min = values.reduce(function (previous, next) {
-			return Math.min(previous, next);
-		}, max);
-
-		var difference = max - min;
-		var maxArea = difference * (values.length - 1);
-
-		for (var i = 0; i < values.length; i++) {
-			area += values[i] - min;
-		}
-
-		return area / maxArea;
-	}
-
-	// first off remove nulls 
-	values = values.filter(function (value) {
-		return value !== null && value !== undefined && value !== Number.POSITIVE_INFINITY && isNaN(value) === false;
-	});
-
-	// initial sort to begin to analyse the variance between the values
-	var sortedValues = values.sort(function (a, b) {
-		return a - b;
-	});
-	// we attempt to find a value that is more similar to all the others, we used to use the median here
-	var median = getValueOfLeastVariance(values);
-
-	// now log all variances from median
-	var variances = [];
-
-	for (var i = 0; i < sortedValues.length; i++) {
-		variances.push({
-			index: i,
-			value: Math.abs(median - sortedValues[i])
-		});
-	}
-
-	// order the variances
-	variances = variances.sort(function (a, b) {
-		return a.value - b.value;
-	});
-
-	// calculate area of variance, imagine a graph where vairance is ploted against the number of variants
-	// a 100% proportional line from bottom left to top right would signify a 100% distributed set of variences,
-	// ergo 50% area would signify no spikes and all values equally distrubuted.
-	// a large area signifies a wide range of variance across values, a small variance signifies a general
-	// small variance across typical values.
-	var area = 0;
-
-	// calculate max amount of variance
-	if (variances[variances.length - 1] === undefined) {
-		debugger;
-	}
-	var maxValue = variances[variances.length - 1].value;
-	var clipPercentage = getAreaPercentage(variances.map(function (variance) {
-		return variance.value;
-	}));
-	var toleranceAdjustment = (1 - clipPercentage) * tolerance;
-	var clipPercentageToleranceAdjusted = clipPercentage + toleranceAdjustment;
-	var maxAmountOfVarianceAllowed = maxValue * clipPercentageToleranceAdjusted;
-
-	// use only values that are within the max variance
-	var clippedValues = [];
-	var _iteratorNormalCompletion = true;
-	var _didIteratorError = false;
-	var _iteratorError = undefined;
-
-	try {
-		for (var _iterator = variances[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-			var variance = _step.value;
-
-			if (variance.value <= maxAmountOfVarianceAllowed) {
-				clippedValues.push(sortedValues[variance.index]);
-			}
-		}
-
-		// if all values are clipped then return the median
-	} catch (err) {
-		_didIteratorError = true;
-		_iteratorError = err;
-	} finally {
-		try {
-			if (!_iteratorNormalCompletion && _iterator.return) {
-				_iterator.return();
-			}
-		} finally {
-			if (_didIteratorError) {
-				throw _iteratorError;
-			}
-		}
-	}
-
-	if (clippedValues.length === 0) {
-		return [median];
-	}
-
-	clippedValues = clippedValues.sort(function (a, b) {
-		return a - b;
-	});
-
-	return clippedValues;
-}
-
-function getMedian(sortedValues) {
-	var startIndex = Math.floor(sortedValues.length / 2) - 1;
-	var endIndex = Math.ceil(sortedValues.length / 2) - 1;
-
-	if (sortedValues.length === 0) {
-		return null;
-	}
-
-	if (sortedValues.length === 1) {
-		return sortedValues[0];
-	}
-
-	if (startIndex === endIndex) {
-		return sortedValues[startIndex];
-	}
-
-	return sortedValues[startIndex] + (sortedValues[endIndex] - sortedValues[startIndex]) / 2;
-}
-
-/***/ }),
-/* 6 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__managers_load__ = __webpack_require__(3);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__controllers_video_element__ = __webpack_require__(8);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__controllers_source__ = __webpack_require__(7);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__managers_bandwidth__ = __webpack_require__(2);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__util_event_emitter__ = __webpack_require__(11);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__models_fragment__ = __webpack_require__(0);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__debug_buffer_output__ = __webpack_require__(9);
-/* harmony reexport (binding) */ __webpack_require__.d(__webpack_exports__, "BufferOutput", function() { return __WEBPACK_IMPORTED_MODULE_6__debug_buffer_output__["a"]; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Player", function() { return Player; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__managers_load__ = __webpack_require__(3);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__controllers_video_element__ = __webpack_require__(7);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__controllers_source__ = __webpack_require__(6);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__managers_bandwidth__ = __webpack_require__(2);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__util_event_emitter__ = __webpack_require__(10);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__models_fragment__ = __webpack_require__(0);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__debug_buffer_output__ = __webpack_require__(8);
+/* harmony reexport (binding) */ __webpack_require__.d(__webpack_exports__, "BufferOutput", function() { return __WEBPACK_IMPORTED_MODULE_6__debug_buffer_output__["a"]; });
 var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -2175,7 +1982,7 @@ Player.MAX_LOAD_ATTEMPTS = 3;
 
 
 /***/ }),
-/* 7 */
+/* 6 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -2406,10 +2213,10 @@ var Source = function (_EventEmitter) {
 }(__WEBPACK_IMPORTED_MODULE_0_wolfy87_eventemitter___default.a);
 
 Source.EVENT_SOURCE_OPEN = 'eventSourceOpen';
-/* harmony default export */ __webpack_exports__["a"] = Source;
+/* harmony default export */ __webpack_exports__["a"] = (Source);
 
 /***/ }),
-/* 8 */
+/* 7 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -2851,19 +2658,17 @@ var VideoElement = function (_EventEmitter) {
 }(__WEBPACK_IMPORTED_MODULE_0_wolfy87_eventemitter___default.a);
 
 VideoElement.EVENT_TIME_UPDATE = 'eventTimeUpdate';
-/* harmony default export */ __webpack_exports__["a"] = VideoElement;
+/* harmony default export */ __webpack_exports__["a"] = (VideoElement);
 
 /***/ }),
-/* 9 */
+/* 8 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__models_fragment__ = __webpack_require__(0);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__util_stats__ = __webpack_require__(5);
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
 
 
 
@@ -3414,10 +3219,10 @@ var BufferOutput = function () {
 	return BufferOutput;
 }();
 
-/* harmony default export */ __webpack_exports__["a"] = BufferOutput;
+/* harmony default export */ __webpack_exports__["a"] = (BufferOutput);
 
 /***/ }),
-/* 10 */
+/* 9 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -3586,10 +3391,10 @@ var Stream = function () {
 	return Stream;
 }();
 
-/* harmony default export */ __webpack_exports__["a"] = Stream;
+/* harmony default export */ __webpack_exports__["a"] = (Stream);
 
 /***/ }),
-/* 11 */
+/* 10 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -3666,10 +3471,10 @@ var EventEmitter = function () {
 	return EventEmitter;
 }();
 
-/* harmony default export */ __webpack_exports__["a"] = EventEmitter;
+/* harmony default export */ __webpack_exports__["a"] = (EventEmitter);
 
 /***/ }),
-/* 12 */
+/* 11 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -3821,13 +3626,224 @@ var FetchXHR2 = function () {
 	return FetchXHR2;
 }();
 
-/* unused harmony default export */ var _unused_webpack_default_export = FetchXHR2;
+/* unused harmony default export */ var _unused_webpack_default_export = (FetchXHR2);
+
+/***/ }),
+/* 12 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (immutable) */ __webpack_exports__["a"] = removeSpikes;
+/* unused harmony export getMedian */
+/* unused harmony export getMean */
+function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
+
+/**
+ * Takes an array of numbers and pucks out any odd spike values that don't
+ * represent the typical varience within the typical range of values
+ */
+function removeSpikes(values) {
+	var tolerance = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
+
+
+	// nothing to clip
+	if (values.length < 2) {
+		return values;
+	}
+
+	// Utility function to return the sum variance against a defined value within an array of values
+	function getSumVariancesOfIndex(values, index) {
+		var varianceSum = 0;
+
+		for (var i = 0; i < values.length; i++) {
+			if (i !== index) {
+				varianceSum += Math.abs(values[index] - values[i]);
+			}
+		}
+
+		return varianceSum;
+	}
+
+	// Utility function to return the value that varies the least relative to the other values
+	function getValueOfLeastVariance(values) {
+		var minSum = Number.POSITIVE_INFINITY;
+		var currentSum = void 0;
+		var minIndex = -1;
+
+		for (var i = 0; i < values.length; i++) {
+			currentSum = getSumVariancesOfIndex(values, i);
+			if (currentSum < minSum) {
+				minSum = currentSum;
+				minIndex = i;
+			}
+		}
+
+		return values[minIndex];
+	}
+
+	// Utility function to return the area of the variance against a possible max
+	function getAreaPercentage(values) {
+
+		var area = 0;
+		var max = values.reduce(function (previous, next) {
+			return Math.max(previous, next);
+		});
+		var min = values.reduce(function (previous, next) {
+			return Math.min(previous, next);
+		}, max);
+
+		var difference = max - min;
+		var maxArea = difference * (values.length - 1);
+
+		for (var i = 0; i < values.length; i++) {
+			area += values[i] - min;
+		}
+
+		return area / maxArea;
+	}
+
+	// first off remove nulls 
+	values = values.filter(function (value) {
+		return value !== null && value !== undefined && value !== Number.POSITIVE_INFINITY && isNaN(value) === false;
+	});
+
+	// save copy to ensure order can be put back
+	var originalValues = [].concat(_toConsumableArray(values));
+
+	// initial sort to begin to analyse the variance between the values
+	var sortedValues = values.sort(function (a, b) {
+		return a - b;
+	});
+	// we attempt to find a value that is more similar to all the others, we used to use the median here
+	var median = getValueOfLeastVariance(values);
+
+	// now log all variances from median
+	var variances = [];
+
+	for (var i = 0; i < sortedValues.length; i++) {
+		variances.push({
+			index: i,
+			value: Math.abs(median - sortedValues[i])
+		});
+	}
+
+	// order the variances
+	variances = variances.sort(function (a, b) {
+		return a.value - b.value;
+	});
+
+	// calculate area of variance, imagine a graph where vairance is ploted against the number of variants
+	// a 100% proportional line from bottom left to top right would signify a 100% distributed set of variences,
+	// ergo 50% area would signify no spikes and all values equally distrubuted.
+	// a large area signifies a wide range of variance across values, a small variance signifies a general
+	// small variance across typical values.
+	var area = 0;
+
+	// calculate max amount of variance
+	if (variances[variances.length - 1] === undefined) {
+		debugger;
+	}
+	var maxValue = variances[variances.length - 1].value;
+	var clipPercentage = getAreaPercentage(variances.map(function (variance) {
+		return variance.value;
+	}));
+	var toleranceAdjustment = (1 - clipPercentage) * tolerance;
+	var clipPercentageToleranceAdjusted = clipPercentage + toleranceAdjustment;
+	var maxAmountOfVarianceAllowed = maxValue * clipPercentageToleranceAdjusted;
+
+	// use only values that are within the max variance
+	var clippedValues = [];
+	var _iteratorNormalCompletion = true;
+	var _didIteratorError = false;
+	var _iteratorError = undefined;
+
+	try {
+		for (var _iterator = variances[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+			var variance = _step.value;
+
+			if (variance.value <= maxAmountOfVarianceAllowed) {
+				clippedValues.push(sortedValues[variance.index]);
+			}
+		}
+
+		// if all values are clipped then return the median
+	} catch (err) {
+		_didIteratorError = true;
+		_iteratorError = err;
+	} finally {
+		try {
+			if (!_iteratorNormalCompletion && _iterator.return) {
+				_iterator.return();
+			}
+		} finally {
+			if (_didIteratorError) {
+				throw _iteratorError;
+			}
+		}
+	}
+
+	if (clippedValues.length === 0) {
+		return [median];
+	}
+
+	// clippedValues = clippedValues.sort((a, b) => a - b);
+	// return clippedValues;
+
+	var index = void 0,
+	    reorderedValues = [];
+	for (var _i = clippedValues.length - 1; _i > -1; _i--) {
+		index = originalValues.indexOf(clippedValues[_i]);
+
+		reorderedValues[index] = clippedValues[_i];
+		originalValues.splice(index, 1);
+	}
+
+	for (var _i2 = reorderedValues.length - 1; _i2 > -1; _i2--) {
+		if (reorderedValues[_i2] === undefined) {
+			reorderedValues.splice(_i2, 1);
+		}
+	}
+
+	return reorderedValues;
+}
+
+function getMedian(sortedValues) {
+	var startIndex = Math.floor(sortedValues.length / 2) - 1;
+	var endIndex = Math.ceil(sortedValues.length / 2) - 1;
+
+	if (sortedValues.length === 0) {
+		return null;
+	}
+
+	if (sortedValues.length === 1) {
+		return sortedValues[0];
+	}
+
+	if (startIndex === endIndex) {
+		return sortedValues[startIndex];
+	}
+
+	return sortedValues[startIndex] + (sortedValues[endIndex] - sortedValues[startIndex]) / 2;
+}
+
+function getMean(values) {
+	var sum = 0;
+
+	for (var i = 0; i < values.length; i++) {
+		sum += values[i];
+	}
+	if (sum === 0) {
+		return 0;
+	}
+
+	return sum / values.length;
+}
 
 /***/ }),
 /* 13 */
 /***/ (function(module, exports, __webpack_require__) {
 
-module.exports = __webpack_require__(6);
+module.exports = __webpack_require__(5);
 
 
 /***/ })
