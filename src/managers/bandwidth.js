@@ -189,8 +189,6 @@ class BandwidthManager {
 				const sortedBandwidth = clippedBandwidth.slice(0).sort((a, b) => a - b);
 
 				// choose an appropriate bandwidth from the clipped array
-				
-				// bandwdth = this._selectBandwidth(sortedBandwidth);
 				bandwidth = this._guessWeightedAverage(clippedBandwidth);
 				latency = this._guessWeightedAverage(clippedLatencies);
 
@@ -211,8 +209,6 @@ class BandwidthManager {
 					latency: latency
 				}
 
-				//sconsole.log(JSON.stringify(bandwidthData));
-
 				return bandwidthData;
 			}
 		}
@@ -225,15 +221,6 @@ class BandwidthManager {
 			return this._getDefaultBandwidth();
 		}
 	}
-
-	// Now unused 
-	// _selectBandwidth(bandwidths) {
-
-	// 	// used to take mean or median here, however lets be a little more pesimistic and ensure a lower value
-	// 	// return getMean(bandwidths);
-	// 	// use the value that is 25% between the min and max
-	// 	return bandwidths[0] + ((bandwidths[bandwidths.length - 1] - bandwidths[0]) * 0.25);
-	// }
 
 
 	/**
@@ -305,8 +292,6 @@ class BandwidthManager {
 			}
 		}
 
-
-		console.dir(range.all);
 		console.log(`Bandwidth _getQuality bandwidth:${bandwidth} latency:${latency} bandwidthAdjustedForLatency:${bandwidthAdjustedForLatency} streamIndex:${streamIndex}`);
 
 		return streamIndex;
