@@ -306,6 +306,7 @@ export default class BufferOutput {
 		});
 
 		maxBandwidth *= 1.1;
+		maxBandwidth = 3000000;
 
 		if (isFinite(maxBandwidth) === false) {
 			debugger;

@@ -118,8 +118,13 @@ export default class Manifest {
 		this._duration = (parseInt(hours) * 60 * 60) + (parseInt(minutes) * 60) + parseInt(seconds);
 		this._numberOfFragments = Math.ceil(this._duration / this._fragmentDuration);
 
-		this._streams = Array.from(xml.querySelectorAll('Representation')).map((node, index) => {
+		// ensure order is set to 0 being the highest bandwidth
+		let representations =  [...xml.querySelectorAll('Representation')];
+		representations = representations.sort((a, b) => {
+			return b.getAttribute('bandwidth') - a.getAttribute('bandwidth')
+		})
 
+		this._streams = representations.map((node, index) => {
 			return new Stream({
 				bandwidth: node.getAttribute('bandwidth'),
 				codecs: node.getAttribute('codecs') || segmentNode.getAttribute('codecs'),

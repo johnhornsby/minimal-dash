@@ -30,9 +30,9 @@ class Main {
 
 		// url = "https://bitmovin-a.akamaihd.net/content/MI201109210084_1/mpds/f08e80da-bf1d-4e3d-8899-f0f6155f6efa.mpd";
 		const player = new Player(videoElement, url, {
-			initialStreamIndex: 0,
+			// initialStreamIndex: 0,
 			debug: true,
-			bufferMinLength: 4
+			bufferMinLength: 2
 		});
 
 		// bufferOutput is simply used to debug at the moment

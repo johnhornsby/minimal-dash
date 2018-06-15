@@ -24,7 +24,7 @@ class LoadManager extends EventEmitter {
 	static STATUS_TIMEOUT = 'timeout';
 	static STATUS_ABORT = 'abort';
 
-	static XHR_TIMEOUT = 10000;
+	static XHR_TIMEOUT = 60000;
 
 
 	// {Map} record of all loaded Manifest data models
@@ -140,31 +140,34 @@ class LoadManager extends EventEmitter {
 				self.accessibleDateInHeader = true;
 			}
 
-			if (self.debug) console.log(self + ' worker.onLoad ' + self.url + ' cached:' + self.isCached + ' latency:' + self.latency + ' contentTime:' + self.contentTime);
+			//if (self.debug) console.log(self + ' worker.onLoad ' + self.url + ' cached:' + self.isCached + ' latency:' + self.latency + ' contentTime:' + self.contentTime);
 			self.initNotificationBeacon();
 		}
 
 		self.onabort = function() {
 			self.completionStatus = STATUS_ABORT;
-			if (self.debug) console.error(self + ' abort ' + self.url);
+			//if (self.debug) console.error(self + ' abort ' + self.url);
 			self.initNotificationBeacon();
 		}
 
 		self.onerror = function(event) {
 			self.completionStatus = STATUS_ERROR;
-			if (self.debug) console.error(self + ' error ' + self.url);
+			//if (self.debug) console.error(self + ' error ' + self.url);
 			self.initNotificationBeacon();
 		}
 
 		self.ontimeout = function() {
 			self.completionStatus = STATUS_TIMEOUT;
-			if (self.debug) console.error(self + ' timeout ' + self.url);
+			//if (self.debug) console.error(self + ' timeout ' + self.url);
 			self.initNotificationBeacon();
 		}
 
 		// net::ERR_INTERNET_DISCONNECTED
 		self.onreadystatechange = function(event) {
-			if (self.debug) console.log(self + ' onreadystatechange ' + self.url + ' readyState:' + self.xhr.readyState + ' status:' + self.xhr.status);
+			var urlArray = self.url.split('/');
+			var file = urlArray.pop();
+			var stream = urlArray.pop();
+			if (self.debug) console.log(self + ' onreadystatechange ' + stream + ' ' + file + ' readyState:' + self.xhr.readyState + ' status:' + self.xhr.status);
 			
 			// check for timeout error here, as we are not using timeout event
 			if (xhr.readyState === 4 && xhr.status !== 200) {
@@ -184,7 +187,10 @@ class LoadManager extends EventEmitter {
 		}
 
 		self.onprogress = function(event) {
-			if (self.debug) console.log(self + ' onprogress ' + self.url + ' readyState:' + self.xhr.readyState + ' status:' + self.xhr.status);
+			var urlArray = self.url.split('/');
+			var file = urlArray.pop();
+			var stream = urlArray.pop();
+			// if (self.debug) console.log(self + ' onprogress ' + stream + ' ' + file + ' readyState:' + self.xhr.readyState + ' status:' + self.xhr.status);
 			
 		}
 
