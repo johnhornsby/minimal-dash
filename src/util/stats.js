@@ -131,8 +131,6 @@ export function removeSpikes(values, tolerance = 0) {
 }
 
 
-
-
 export function getMedian(sortedValues) {
 	let startIndex = Math.floor(sortedValues.length / 2) - 1;
 	let endIndex = Math.ceil(sortedValues.length / 2) - 1;

@@ -1,4 +1,5 @@
 import Fragment from '../models/fragment';
+import { removeSpikes } from '../util/stats';
 
 export default class BufferOutput {
 
@@ -239,6 +240,14 @@ export default class BufferOutput {
 	}
 
 
+	_getGraphMaxY(yValues) {
+		const a = yValues.slice(0);
+		let maxY = parseInt(removeSpikes(a, 1).sort((a, b) => a - b).pop());
+		var step = Math.pow(10, parseInt(String(maxY).length)) * 0.1; // 0.5 of the 10's
+		return (Math.ceil(maxY / step) * step) + step;
+	}
+
+
 	_drawFragments(colWidths, x, y, w, h) {
 		const manifest = this._manifest;
 		const ctx = this._ctx;
@@ -306,7 +315,7 @@ export default class BufferOutput {
 		});
 
 		maxBandwidth *= 1.1;
-		maxBandwidth = 3000000;
+		maxBandwidth = this._getGraphMaxY(bandwidths);
 
 		if (isFinite(maxBandwidth) === false) {
 			debugger;

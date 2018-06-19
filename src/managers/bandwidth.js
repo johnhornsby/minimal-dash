@@ -8,7 +8,7 @@ import LoadManager from './load';
 import {removeSpikes, getMean} from '../util/stats';
 
 
-const MEASURE_VALID_READINGS = 3; // bandwidth readings
+const MEASURE_VALID_READINGS = 10; // bandwidth readings
 
 const INITIAL_BANDWIDTH = 500000; // 0.5 mb / s
 
